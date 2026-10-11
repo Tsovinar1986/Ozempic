@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reddit comment",
+  "description": "One Reddit comment, normalized from raw Reddit/Arctic Shift JSON. Schema version 1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "type", "id", "fullname", "subreddit", "author", "created_utc",
+    "created_at", "body", "text", "post_id", "parent_id", "is_top_level", "is_submitter",
+    "permalink", "score", "controversiality", "is_removed", "edited_utc", "source",
+    "retrieved_utc"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "type": {"const": "comment"},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+$", "description": "Base36 Reddit id."},
+    "fullname": {"type": "string", "pattern": "^t1_[a-z0-9]+$"},
+    "subreddit": {"type": "string"},
+    "author": {"type": ["string", "null"], "description": "Username; null if the account was deleted."},
+    "created_utc": {"type": "integer", "description": "Unix seconds, UTC."},
+    "created_at": {"type": "string", "format": "date-time"},
+    "body": {"type": ["string", "null"], "description": "Comment text; null when removed/deleted."},
+    "text": {"type": "string", "description": "Same as body ('' when removed): the field to run NLP on."},
+    "post_id": {"type": "string", "pattern": "^t3_[a-z0-9]+$", "description": "Fullname of the post this comment is under; joins to post.fullname."},
+    "parent_id": {"type": "string", "pattern": "^t[13]_[a-z0-9]+$", "description": "Fullname of the direct parent: the post (t3_) or another comment (t1_)."},
+    "is_top_level": {"type": "boolean", "description": "True if the comment replies directly to the post."},
+    "is_submitter": {"type": "boolean", "description": "True if the commenter is the post's author (OP)."},
+    "permalink": {"type": "string", "format": "iri"},
+    "score": {"type": ["integer", "null"]},
+    "controversiality": {"type": ["integer", "null"], "enum": [0, 1, null]},
+    "is_removed": {"type": "boolean"},
+    "edited_utc": {"type": ["integer", "null"]},
+    "source": {"type": "string"},
+    "retrieved_utc": {"type": ["integer", "null"]}
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reddit post",
+  "description": "One Reddit submission, normalized from raw Reddit/Arctic Shift JSON. Schema version 1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "type", "id", "fullname", "subreddit", "author", "created_utc",
+    "created_at", "title", "body", "text", "url", "permalink", "flair", "score",
+    "upvote_ratio", "num_comments", "is_self", "over_18", "is_removed", "removed_by",
+    "edited_utc", "source", "retrieved_utc"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "type": {"const": "post"},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+$", "description": "Base36 Reddit id, e.g. 1x33ulp."},
+    "fullname": {"type": "string", "pattern": "^t3_[a-z0-9]+$", "description": "Reddit fullname (t3_ + id); comments reference it in post_id/parent_id."},
+    "subreddit": {"type": "string"},
+    "author": {"type": ["string", "null"], "description": "Username; null if the account was deleted."},
+    "created_utc": {"type": "integer", "description": "Unix seconds, UTC."},
+    "created_at": {"type": "string", "format": "date-time", "description": "created_utc as ISO 8601 UTC."},
+    "title": {"type": "string"},
+    "body": {"type": ["string", "null"], "description": "Self-text. Null for link posts or when removed/deleted."},
+    "text": {"type": "string", "description": "title + blank line + body: the field to run NLP on."},
+    "url": {"type": ["string", "null"], "description": "Link target for link posts; the post itself for self posts."},
+    "permalink": {"type": "string", "format": "iri"},
+    "flair": {"type": ["string", "null"], "description": "Link flair text, as set by the subreddit."},
+    "score": {"type": ["integer", "null"], "description": "Upvotes minus downvotes at retrieved_utc."},
+    "upvote_ratio": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "num_comments": {"type": ["integer", "null"], "minimum": 0},
+    "is_self": {"type": "boolean", "description": "True for text posts, false for link/media posts."},
+    "over_18": {"type": "boolean"},
+    "is_removed": {"type": "boolean", "description": "True if the body was removed by moderators/Reddit or deleted by the author."},
+    "removed_by": {"type": ["string", "null"], "description": "Raw removed_by_category, e.g. moderator, deleted, reddit, automod_filtered."},
+    "edited_utc": {"type": ["integer", "null"], "description": "Unix seconds of last edit; null if never edited."},
+    "source": {"type": "string", "description": "Where the record came from, e.g. arctic_shift."},
+    "retrieved_utc": {"type": ["integer", "null"], "description": "When the source captured this version of the record (score/num_comments are as of this time)."}
+  }
+}

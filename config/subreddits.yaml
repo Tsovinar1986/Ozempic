@@ -1,0 +1,21 @@
+# Subreddits to collect. Replace/extend with the final list from Phase 2.
+subreddits:
+  - Ozempic
+  - Semaglutide
+  - Mounjaro
+  - Zepbound
+  - compoundedsemaglutide
+  - tirzepatidecompound
+
+kinds: [posts, comments]
+
+# First UTC day to collect when a subreddit/kind has no checkpoint yet (backfill start).
+start_date: "2026-10-01"
+
+# Only collect days that ended at least this many hours ago. Arctic Shift re-fetches
+# items ~36-61h after creation, so this gives settled score/num_comments values.
+settle_hours: 72
+
+# Upper bound on days processed per subreddit/kind in one run, so a large backfill
+# is spread across several runs instead of hitting the job timeout.
+max_days_per_run: 14

@@ -1,0 +1,39 @@
+name: Collect Reddit data
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # daily, 06:17 UTC
+  workflow_dispatch: {}
+
+# Never run two collections at once: both would read and advance the same checkpoint.
+concurrency:
+  group: reddit-collector
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # OIDC login to AWS, no long-lived keys
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Collect
+        env:
+          DEST_URI: s3://${{ vars.S3_BUCKET }}/reddit
+        run: python -m collector.collect --config config/subreddits.yaml
