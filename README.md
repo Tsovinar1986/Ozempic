@@ -1,7 +1,7 @@
 # Ozempic Reddit data pipeline
 
 Automated daily collection of posts and comments from GLP-1 subreddits (task 2.1),
-normalized into a fixed schema (task 2.2).
+normalized into a fixed schema.
 
 ## How it works
 
