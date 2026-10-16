@@ -19,3 +19,6 @@ settle_hours: 72
 # Upper bound on days processed per subreddit/kind in one run, so a large backfill
 # is spread across several runs instead of hitting the job timeout.
 max_days_per_run: 90
+
+# Curated file format: "jsonl" (JSON Lines, one record per line) or "parquet".
+curated_format: jsonl

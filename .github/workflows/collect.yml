@@ -11,8 +11,10 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write   # OIDC login to AWS, no long-lived keys
-  contents: read
+  contents: write   # push collected data to the `data` branch
+
+env:
+  DATA_BRANCH: data
 
 jobs:
   collect:
@@ -28,20 +30,43 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+      # Data and the checkpoint live on a separate branch, checked out at ./data.
+      # The first run creates it as an empty orphan branch.
+      - name: Check out data branch
+        run: |
+          if git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null; then
+            git fetch --depth=1 origin "+refs/heads/${DATA_BRANCH}:refs/remotes/origin/${DATA_BRANCH}"
+            git worktree add -B "$DATA_BRANCH" data "origin/$DATA_BRANCH"
+          else
+            git worktree add --detach data
+            git -C data checkout --orphan "$DATA_BRANCH"
+            git -C data rm -rf --quiet .
+          fi
 
+      # The checkpoint advances one day at a time, so if a long backfill hits this
+      # timeout the finished days are still committed below and the next run resumes.
       - name: Collect
-        env:
-          DEST_URI: s3://${{ vars.S3_BUCKET }}/reddit
-        run: python -m collector.collect --config config/subreddits.yaml
+        timeout-minutes: 100
+        run: python -m collector.collect --config config/subreddits.yaml --dest data
 
       - name: Export latest Ozempic comments
-        env:
-          DEST_URI: s3://${{ vars.S3_BUCKET }}/reddit
+        if: always()
         run: >-
           python scripts/extract_ozempic_comments.py
-          --input "$DEST_URI/curated/comments"
-          --output "$DEST_URI/exports/ozempic_100k_comments.csv"
+          --input data/curated/comments
+          --output data/exports/ozempic_100k_comments.csv
+
+      - name: Commit data
+        if: always()
+        working-directory: data
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No new data"
+            exit 0
+          fi
+          through=$(jq -r '[.[]] | max' state/checkpoint.json 2>/dev/null || echo "partial day")
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Collect data (next day: $through)"
+          git push origin "HEAD:$DATA_BRANCH"

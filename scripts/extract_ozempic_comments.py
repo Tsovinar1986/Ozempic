@@ -15,25 +15,35 @@ def positive_int(value):
     return limit
 
 
-def _parquet_files(input_dir):
+def _pick_format(files, input_dir):
+    """Prefer Parquet partitions; fall back to non-empty JSON Lines partitions."""
+    for ext in (".parquet", ".jsonl"):
+        matched = [file for file in files if file.endswith(ext)]
+        if matched:
+            return matched, ext
+    raise FileNotFoundError(f"No Parquet or JSONL files found under: {input_dir}")
+
+
+def _curated_files(input_dir):
     if input_dir.startswith("s3://"):
         fs, path = fsspec.core.url_to_fs(input_dir)
-        files = sorted(file for file in fs.find(path) if file.endswith(".parquet"))
-        if not files:
-            raise FileNotFoundError(f"No Parquet files found under: {input_dir}")
-        return [fs.unstrip_protocol(file) for file in files], True
+        files, ext = _pick_format(sorted(fs.find(path)), input_dir)
+        return [fs.unstrip_protocol(file) for file in files], ext, True
 
     directory = Path(input_dir)
     if not directory.is_dir():
         raise FileNotFoundError(f"Curated comments directory not found: {directory}")
-    files = sorted(str(path) for path in directory.rglob("*.parquet") if path.is_file())
-    if not files:
-        raise FileNotFoundError(f"No Parquet files found under: {directory}")
-    return files, False
+    # Days without comments produce empty .jsonl files, which DuckDB cannot read.
+    files = sorted(
+        str(path) for path in directory.rglob("*")
+        if path.is_file() and (path.suffix == ".parquet" or path.stat().st_size > 0)
+    )
+    files, ext = _pick_format(files, directory)
+    return files, ext, False
 
 
 def extract_ozempic_comments(input_dir, output_file, limit=100_000):
-    parquet_files, is_s3 = _parquet_files(str(input_dir))
+    files, ext, is_s3 = _curated_files(str(input_dir))
 
     with duckdb.connect() as connection:
         if is_s3:
@@ -46,7 +56,10 @@ def extract_ozempic_comments(input_dir, output_file, limit=100_000):
                 "CREATE SECRET (TYPE S3, PROVIDER CREDENTIAL_CHAIN, "
                 f"REGION '{region}')"
             )
-        comments = connection.read_parquet(parquet_files)
+        if ext == ".parquet":
+            comments = connection.read_parquet(files)
+        else:
+            comments = connection.read_json(files, format="newline_delimited")
         connection.register("comments", comments)
         df = connection.execute(
             """
@@ -81,7 +94,7 @@ def main():
     parser.add_argument(
         "--input",
         default="data/curated/comments",
-        help="local directory or s3:// URI containing curated comment Parquet partitions",
+        help="local directory or s3:// URI containing curated comment Parquet or JSONL partitions",
     )
     parser.add_argument(
         "--output",

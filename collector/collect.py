@@ -1,4 +1,4 @@
-"""Incremental Reddit collector: Arctic Shift API -> raw JSONL.gz + curated Parquet.
+"""Incremental Reddit collector: Arctic Shift API -> raw JSONL.gz + curated Parquet/JSONL.
 
 Work is split into whole UTC days per (kind, subreddit). Each day is written to
 deterministic paths, so re-running a day overwrites its files instead of
@@ -7,7 +7,7 @@ advanced after both raw and curated files for that day are written.
 
 Layout under DEST (local path or s3://bucket/prefix):
     raw/{kind}/subreddit={sub}/date={YYYY-MM-DD}.jsonl.gz
-    curated/{kind}/subreddit={sub}/date={YYYY-MM-DD}.parquet
+    curated/{kind}/subreddit={sub}/date={YYYY-MM-DD}.parquet   (or .jsonl, see curated_format)
     state/checkpoint.json
 """
 
@@ -112,12 +112,16 @@ def write_raw(dest, kind, subreddit, day, items):
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
-def write_curated(dest, kind, subreddit, day, items, ingested_at):
+def write_curated(dest, kind, subreddit, day, items, ingested_at, fmt="parquet"):
     transform, fields = CURATED[kind]
     df = pd.DataFrame([transform(item) for item in items], columns=fields)
     df = df.drop_duplicates("id", keep="last")
     df["ingested_at"] = ingested_at
-    path = f"{dest}/curated/{kind}/subreddit={subreddit}/date={day}.parquet"
+    path = f"{dest}/curated/{kind}/subreddit={subreddit}/date={day}.{fmt}"
+    if fmt == "jsonl":
+        with fsspec.open(path, "w", encoding="utf-8", auto_mkdir=True) as f:
+            df.to_json(f, orient="records", lines=True, date_format="iso", force_ascii=False)
+        return
     fs, _ = fsspec.core.url_to_fs(path)
     fs.makedirs(path.rsplit("/", 1)[0], exist_ok=True)
     df.to_parquet(path, index=False)
@@ -147,6 +151,9 @@ def run(config, dest, now=None):
     session = requests.Session()
     session.headers["User-Agent"] = USER_AGENT
     start_date = date.fromisoformat(config["start_date"])
+    curated_format = config.get("curated_format", "parquet")
+    if curated_format not in ("parquet", "jsonl"):
+        raise ValueError(f"curated_format must be parquet or jsonl, got {curated_format!r}")
 
     for kind in config["kinds"]:
         for subreddit in config["subreddits"]:
@@ -158,7 +165,7 @@ def run(config, dest, now=None):
             for day in days:
                 items = fetch_range(session, kind, subreddit, *day_bounds(day))
                 write_raw(dest, kind, subreddit, day, items)
-                write_curated(dest, kind, subreddit, day, items, ingested_at)
+                write_curated(dest, kind, subreddit, day, items, ingested_at, curated_format)
                 checkpoint[key] = (day + timedelta(days=1)).isoformat()
                 write_checkpoint(dest, checkpoint)
                 log.info("%s %s: %d items", key, day, len(items))

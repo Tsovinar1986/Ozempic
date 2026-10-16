@@ -9,10 +9,10 @@ normalized into a fixed schema.
 flowchart LR
     cron["GitHub Actions<br/>daily cron 06:17 UTC"] --> script["collector/collect.py"]
     cfg["config/subreddits.yaml<br/>subreddits, start_date,<br/>settle_hours"] --> script
-    ckpt[("state/checkpoint.json<br/>next day per subreddit+kind")] -- "1. read" --> script
+    ckpt[("data branch: state/checkpoint.json<br/>next day per subreddit+kind")] -- "1. read" --> script
     script -- "2. GET /posts/search<br/>GET /comments/search<br/>(paged, 1 req / 3s)" --> api["Arctic Shift API"]
-    script -- "3. full records, untouched" --> raw[("raw/<br/>JSONL.gz")]
-    script -- "4. schema v1.0<br/>(collector/schema.py)" --> cur[("curated/<br/>Parquet")]
+    script -- "3. full records, untouched" --> raw[("data branch: raw/<br/>JSONL.gz")]
+    script -- "4. schema v1.0<br/>(collector/schema.py)" --> cur[("data branch: curated/<br/>JSONL")]
     script -- "5. advance (after 3 & 4)" --> ckpt
     cur --> use["analysis / labeling"]
 ```
@@ -30,12 +30,20 @@ Each run, for every `(kind, subreddit)`:
 Because every day maps to fixed file paths, a crash or a re-run overwrites the same files:
 no duplicates and no gaps.
 
+The scheduled workflow stores everything on the repository's `data` branch
+(created automatically on the first run, separate from the code):
+
 ```text
-s3://<bucket>/reddit/
-├── raw/{posts|comments}/subreddit=Ozempic/date=2026-10-05.jsonl.gz      # exactly what the API returned
-├── curated/{posts|comments}/subreddit=Ozempic/date=2026-10-05.parquet   # schema v1.0 + ingested_at
-└── state/checkpoint.json                                                # {"posts/Ozempic": "2026-10-08", ...}
+data branch/
+├── raw/{posts|comments}/subreddit=Ozempic/date=2026-10-05.jsonl.gz    # exactly what the API returned
+├── curated/{posts|comments}/subreddit=Ozempic/date=2026-10-05.jsonl   # schema v1.0 + ingested_at, one JSON record per line
+├── exports/ozempic_100k_comments.csv                                  # see below
+└── state/checkpoint.json                                              # {"posts/Ozempic": "2026-10-08", ...}
 ```
+
+Curated files are JSON Lines because `config/subreddits.yaml` sets `curated_format: jsonl`;
+set it to `parquet` to write Parquet instead. `--dest` also accepts an `s3://bucket/prefix`
+URI if the data later moves to S3.
 
 ## Data schema (v1.0)
 
@@ -78,31 +86,35 @@ python -m pytest tests
 ## Exporting up to 100,000 Ozempic comments
 
 The scheduled GitHub Actions workflow writes a refreshed CSV to
-`s3://<bucket>/reddit/exports/ozempic_100k_comments.csv` after each collection.
+`exports/ozempic_100k_comments.csv` on the `data` branch after each collection.
 It contains the latest matching comments (case-insensitive mention of
 `ozempic`), up to 100,000 rows. The daily collector continues adding data;
 the export rolls forward to include the newest matches.
 
-To generate the same export from local curated Parquet data:
+To generate the same export from local curated data:
 
 ```bash
 python scripts/extract_ozempic_comments.py
 ```
 
-By default this reads `data/curated/comments/` and writes
+By default this reads `data/curated/comments/` (Parquet or JSONL) and writes
 `ozempic_100k_comments.csv`. The export contains up to 100,000 records; it may
 contain fewer until enough matching data has been collected. The daily collector
 continues to add data independently. Override paths or the cap with `--input`,
 `--output`, and `--limit`.
 
-GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)), under
-repo **Settings → Secrets and variables → Actions → Variables**:
+GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)): no secrets
+or variables are needed. The workflow pushes to the `data` branch with the built-in `GITHUB_TOKEN`
+(`permissions: contents: write`). Start a run by hand from the **Actions** tab → **Collect Reddit data**
+→ **Run workflow**. A long backfill is spread across runs: each run stops collecting after 100 minutes,
+commits the finished days, and the next run continues from the checkpoint.
 
-| variable | example |
-|---|---|
-| `S3_BUCKET` | `ozempic-reddit-data` |
-| `AWS_REGION` | `eu-central-1` |
-| `AWS_ROLE_ARN` | IAM role trusted for GitHub OIDC (`token.actions.githubusercontent.com`), with `s3:GetObject`, `s3:PutObject`, `s3:ListBucket` on the bucket |
+To work with the collected data locally:
+
+```bash
+git fetch origin data
+git worktree add data origin/data    # ./data is git-ignored on main
+```
 
 ## Arctic Shift API notes (measured 2026-10-11)
 

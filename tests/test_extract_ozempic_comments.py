@@ -43,6 +43,21 @@ def test_missing_parquet_directory_fails_explicitly(tmp_path):
     try:
         extract_ozempic_comments(input_dir, tmp_path / "comments.csv")
     except FileNotFoundError as error:
-        assert "No Parquet files found" in str(error)
+        assert "No Parquet or JSONL files found" in str(error)
     else:
         raise AssertionError("Expected missing Parquet input to fail")
+
+
+def test_reads_jsonl_partitions_and_skips_empty_days(tmp_path):
+    input_dir = tmp_path / "curated" / "comments" / "subreddit=Ozempic"
+    input_dir.mkdir(parents=True)
+    pd.DataFrame(
+        [make_comment("a", "Ozempic day one", 1), make_comment("b", "nothing", 2)]
+    ).to_json(input_dir / "date=2026-10-01.jsonl", orient="records", lines=True)
+    (input_dir / "date=2026-10-02.jsonl").write_text("")
+    output_file = tmp_path / "comments.csv"
+
+    count = extract_ozempic_comments(input_dir.parent, output_file)
+
+    assert count == 1
+    assert pd.read_csv(output_file)["comment_id"].tolist() == ["a"]

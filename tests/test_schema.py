@@ -4,7 +4,7 @@ from pathlib import Path
 
 import jsonschema
 
-from collector.collect import days_to_collect
+from collector.collect import days_to_collect, write_curated
 from collector.schema import to_schema
 
 SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema"
@@ -60,3 +60,15 @@ def test_days_to_collect_respects_settle_window_and_cap():
     assert days_to_collect(date(2026, 10, 5), 72, 30, now) == [date(2026, 10, d) for d in (5, 6, 7)]
     assert days_to_collect(date(2026, 10, 5), 72, 2, now) == [date(2026, 10, 5), date(2026, 10, 6)]
     assert days_to_collect(date(2026, 10, 8), 72, 30, now) == []
+
+
+def test_write_curated_jsonl(tmp_path):
+    raw = {"id": "abc", "subreddit": "Ozempic", "author": "u", "body": "hi", "created_utc": 1759276800,
+           "link_id": "t3_xyz", "parent_id": "t3_xyz", "score": 1}
+    write_curated(str(tmp_path), "comments", "Ozempic", date(2025, 10, 1), [raw, raw],
+                  datetime(2025, 10, 5, tzinfo=timezone.utc), "jsonl")
+
+    path = tmp_path / "curated/comments/subreddit=Ozempic/date=2025-10-01.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    assert [r["id"] for r in rows] == ["abc"]
+    assert rows[0]["ingested_at"].startswith("2025-10-05T00:00:00")
