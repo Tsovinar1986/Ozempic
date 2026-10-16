@@ -75,6 +75,26 @@ python -m collector.collect --dest data          # local test run, writes to ./d
 python -m pytest tests
 ```
 
+## Exporting up to 100,000 Ozempic comments
+
+The scheduled GitHub Actions workflow writes a refreshed CSV to
+`s3://<bucket>/reddit/exports/ozempic_100k_comments.csv` after each collection.
+It contains the latest matching comments (case-insensitive mention of
+`ozempic`), up to 100,000 rows. The daily collector continues adding data;
+the export rolls forward to include the newest matches.
+
+To generate the same export from local curated Parquet data:
+
+```bash
+python scripts/extract_ozempic_comments.py
+```
+
+By default this reads `data/curated/comments/` and writes
+`ozempic_100k_comments.csv`. The export contains up to 100,000 records; it may
+contain fewer until enough matching data has been collected. The daily collector
+continues to add data independently. Override paths or the cap with `--input`,
+`--output`, and `--limit`.
+
 GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)), under
 repo **Settings → Secrets and variables → Actions → Variables**:
 

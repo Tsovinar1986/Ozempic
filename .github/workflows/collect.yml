@@ -37,3 +37,11 @@ jobs:
         env:
           DEST_URI: s3://${{ vars.S3_BUCKET }}/reddit
         run: python -m collector.collect --config config/subreddits.yaml
+
+      - name: Export latest Ozempic comments
+        env:
+          DEST_URI: s3://${{ vars.S3_BUCKET }}/reddit
+        run: >-
+          python scripts/extract_ozempic_comments.py
+          --input "$DEST_URI/curated/comments"
+          --output "$DEST_URI/exports/ozempic_100k_comments.csv"
