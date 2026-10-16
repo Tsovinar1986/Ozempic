@@ -9,10 +9,10 @@ normalized into a fixed schema.
 flowchart LR
     cron["GitHub Actions<br/>daily cron 06:17 UTC"] --> script["collector/collect.py"]
     cfg["config/subreddits.yaml<br/>subreddits, start_date,<br/>settle_hours"] --> script
-    ckpt[("S3 state/checkpoint.json<br/>next day per subreddit+kind")] -- "1. read" --> script
+    ckpt[("state/checkpoint.json<br/>next day per subreddit+kind")] -- "1. read" --> script
     script -- "2. GET /posts/search<br/>GET /comments/search<br/>(paged, 1 req / 3s)" --> api["Arctic Shift API"]
-    script -- "3. full records, untouched" --> raw[("S3 raw/<br/>JSONL.gz")]
-    script -- "4. schema v1.0<br/>(collector/schema.py)" --> cur[("S3 curated/<br/>Parquet")]
+    script -- "3. full records, untouched" --> raw[("raw/<br/>JSONL.gz")]
+    script -- "4. schema v1.0<br/>(collector/schema.py)" --> cur[("curated/<br/>Parquet")]
     script -- "5. advance (after 3 & 4)" --> ckpt
     cur --> use["analysis / labeling"]
 ```
