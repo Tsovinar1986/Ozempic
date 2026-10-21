@@ -47,7 +47,7 @@ def _get(session, url, params):
     for attempt in range(MAX_RETRIES):
         time.sleep(REQUEST_PAUSE_S)
         try:
-            resp = session.get(url, params=params, timeout=(10, 60))
+            resp = session.get(url, params=params, timeout=30)
         except (requests.ConnectionError, requests.Timeout) as e:
             wait = 2 ** attempt * 15
             log.warning("%s, retrying in %ds", type(e).__name__, wait)
