@@ -57,3 +57,25 @@ def test_run_collects_the_stream_furthest_behind_first(monkeypatch, tmp_path):
         ("comments", "A", jan1 + 2 * day),
         ("posts", "A", jan1 + 3 * day),
     ]
+
+
+def test_run_stops_starting_days_after_time_budget(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+
+    from collector.collect import read_checkpoint, run
+
+    clock = iter([0, 0, 1000])
+    monkeypatch.setattr("collector.collect.time.monotonic", lambda: next(clock))
+    monkeypatch.setattr("collector.collect.fetch_range", lambda *args: [])
+    config = {
+        "subreddits": ["A"],
+        "kinds": ["posts"],
+        "start_date": "2024-01-01",
+        "settle_hours": 0,
+        "max_days_per_run": 3,
+        "curated_format": "jsonl",
+    }
+
+    run(config, str(tmp_path), now=datetime(2024, 1, 5, tzinfo=timezone.utc), max_minutes=1)
+
+    assert read_checkpoint(str(tmp_path)) == {"posts/A": "2024-01-02"}

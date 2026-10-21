@@ -144,8 +144,9 @@ def days_to_collect(next_day, settle_hours, max_days, now):
     return days
 
 
-def run(config, dest, now=None):
+def run(config, dest, now=None, max_minutes=None):
     now = now or datetime.now(timezone.utc)
+    deadline = time.monotonic() + max_minutes * 60 if max_minutes else None
     ingested_at = pd.Timestamp(now)
     checkpoint = read_checkpoint(dest)
     session = requests.Session()
@@ -169,6 +170,10 @@ def run(config, dest, now=None):
     # Always collect the day of the stream that is furthest behind (ties: config order),
     # so when the job timeout cuts a run short, every stream has advanced evenly.
     while pending:
+        if deadline and time.monotonic() >= deadline:
+            log.info("time budget of %s min used up; the next run continues from the checkpoint",
+                     max_minutes)
+            return
         kind, subreddit = min(pending, key=lambda k: pending[k][0])
         day = pending[(kind, subreddit)].pop(0)
         if not pending[(kind, subreddit)]:
@@ -187,11 +192,13 @@ def main():
     parser.add_argument("--config", default="config/subreddits.yaml")
     parser.add_argument("--dest", default=os.environ.get("DEST_URI", "data"),
                         help="local dir or s3://bucket/prefix (default: $DEST_URI or ./data)")
+    parser.add_argument("--max-minutes", type=float,
+                        help="stop starting new days after this long and exit cleanly")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     with open(args.config) as f:
         config = yaml.safe_load(f)
-    run(config, args.dest.rstrip("/"))
+    run(config, args.dest.rstrip("/"), max_minutes=args.max_minutes)
 
 
 if __name__ == "__main__":
