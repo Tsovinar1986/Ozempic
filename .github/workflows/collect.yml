@@ -63,8 +63,9 @@ jobs:
             echo "No new data"
             exit 0
           fi
-          through=$(jq -r '[.[]] | max' state/checkpoint.json 2>/dev/null || echo "partial day")
+          # Report the stream furthest behind, so the message doesn't overstate progress.
+          through=$(jq -r '[.[]] | min' state/checkpoint.json 2>/dev/null || echo "partial day")
           git -c user.name="github-actions[bot]" \
               -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
-              commit --quiet -m "Collect data (next day: $through)"
+              commit --quiet -m "Collect data (oldest next day: $through)"
           git push origin "HEAD:$DATA_BRANCH"

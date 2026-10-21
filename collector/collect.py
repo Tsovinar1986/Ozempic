@@ -155,20 +155,31 @@ def run(config, dest, now=None):
     if curated_format not in ("parquet", "jsonl"):
         raise ValueError(f"curated_format must be parquet or jsonl, got {curated_format!r}")
 
+    pending = {}
     for kind in config["kinds"]:
         for subreddit in config["subreddits"]:
             key = f"{kind}/{subreddit}"
             next_day = date.fromisoformat(checkpoint[key]) if key in checkpoint else start_date
             days = days_to_collect(next_day, config["settle_hours"], config["max_days_per_run"], now)
-            if not days:
+            if days:
+                pending[(kind, subreddit)] = days
+            else:
                 log.info("%s: up to date (next day %s)", key, next_day)
-            for day in days:
-                items = fetch_range(session, kind, subreddit, *day_bounds(day))
-                write_raw(dest, kind, subreddit, day, items)
-                write_curated(dest, kind, subreddit, day, items, ingested_at, curated_format)
-                checkpoint[key] = (day + timedelta(days=1)).isoformat()
-                write_checkpoint(dest, checkpoint)
-                log.info("%s %s: %d items", key, day, len(items))
+
+    # Always collect the day of the stream that is furthest behind (ties: config order),
+    # so when the job timeout cuts a run short, every stream has advanced evenly.
+    while pending:
+        kind, subreddit = min(pending, key=lambda k: pending[k][0])
+        day = pending[(kind, subreddit)].pop(0)
+        if not pending[(kind, subreddit)]:
+            del pending[(kind, subreddit)]
+        key = f"{kind}/{subreddit}"
+        items = fetch_range(session, kind, subreddit, *day_bounds(day))
+        write_raw(dest, kind, subreddit, day, items)
+        write_curated(dest, kind, subreddit, day, items, ingested_at, curated_format)
+        checkpoint[key] = (day + timedelta(days=1)).isoformat()
+        write_checkpoint(dest, checkpoint)
+        log.info("%s %s: %d items", key, day, len(items))
 
 
 def main():

@@ -27,6 +27,9 @@ Each run, for every `(kind, subreddit)`:
 3. For each day, page through the API (`sort=asc`, 100 items per page) for `[00:00, 24:00)` UTC.
 4. Write that day's raw records and curated records, then advance the checkpoint by one day.
 
+Days are taken from whichever `(kind, subreddit)` is furthest behind, one day at a time, so a run
+cut short by the 30-minute timeout still advances all streams evenly.
+
 Because every day maps to fixed file paths, a crash or a re-run overwrites the same files:
 no duplicates and no gaps.
 
@@ -78,6 +81,7 @@ and, with `--csv`, CSV copies that open directly in Google Sheets.
 ## Running
 
 ```bash
+python3 -m venv .venv && source .venv/bin/activate   # keeps global packages out of the way
 pip install -r requirements.txt
 python -m collector.collect --dest data          # local test run, writes to ./data
 python -m pytest tests
