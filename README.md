@@ -110,7 +110,7 @@ continues to add data independently. Override paths or the cap with `--input`,
 GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)): no secrets
 or variables are needed. The workflow pushes to the `data` branch with the built-in `GITHUB_TOKEN`
 (`permissions: contents: write`). Start a run by hand from the **Actions** tab → **Collect Reddit data**
-→ **Run workflow**. A long backfill is spread across runs: collection and the overall workflow are
+→ **Run workflow**. A long backfill is spread across runs: the collector
 stops starting new days after 24 minutes (Collect step capped at 30, job at 40), and the next run continues from the checkpoint.
 
 To work with the collected data locally:
