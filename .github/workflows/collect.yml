@@ -103,6 +103,11 @@ jobs:
             github_pat_*) echo "::warning::Token is fine-grained; it cannot reach repos owned by another user. Use a classic token with repo scope." ;;
             *) echo "::warning::Token does not start with ghp_ (${#token} chars); the secret may hold extra text." ;;
           esac
+          # The data branch was fetched shallow; without its history git can't tell a push
+          # to a repo that is behind is a fast-forward, and rejects it.
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --quiet --unshallow origin "$DATA_BRANCH"
+          fi
           auth=$(printf 'x-access-token:%s' "$token" | base64 -w0)
           echo "::add-mask::$auth"
           failed=0
