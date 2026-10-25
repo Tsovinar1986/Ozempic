@@ -72,19 +72,28 @@ jobs:
               commit --quiet -m "Collect data (oldest next day: $through)"
           git push origin "HEAD:$DATA_BRANCH"
 
-      # Mirror the data branch to the team repo. Needs a TEAM_REPO_TOKEN secret: a classic
-      # personal access token (repo scope) from an account with write access there.
+      # Mirror the data branch to the team repos. Needs a TEAM_REPO_TOKEN secret: a classic
+      # personal access token (repo scope) from an account with write access to each repo.
       # The empty extraheader drops the GITHUB_TOKEN auth that actions/checkout configured.
-      - name: Mirror data to team repo
+      # Every repo is attempted; the step fails afterwards if any push failed.
+      - name: Mirror data to team repos
         if: always()
         working-directory: data
         env:
           TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
+          MIRROR_REPOS: >-
+            adele-kha/uitbreiden_drug_experience
+            UitbreidenAI/drug-exp-api
         run: |
           if [ -z "$TEAM_REPO_TOKEN" ]; then
             echo "TEAM_REPO_TOKEN not set, skipping mirror"
             exit 0
           fi
-          git -c http.https://github.com/.extraheader= push \
-            "https://x-access-token:${TEAM_REPO_TOKEN}@github.com/adele-kha/uitbreiden_drug_experience.git" \
-            "HEAD:data"
+          failed=0
+          for repo in $MIRROR_REPOS; do
+            echo "Pushing data to $repo"
+            git -c http.https://github.com/.extraheader= push \
+              "https://x-access-token:${TEAM_REPO_TOKEN}@github.com/${repo}.git" \
+              "HEAD:data" || { echo "::error::push to $repo failed"; failed=1; }
+          done
+          exit $failed
