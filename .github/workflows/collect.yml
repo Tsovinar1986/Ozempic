@@ -3,7 +3,12 @@ name: Collect Reddit data
 on:
   schedule:
     - cron: "17 6 * * *"   # daily, 06:17 UTC
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mirror_only:
+        description: "Skip collection; only push the current data branch to the team repos"
+        type: boolean
+        default: false
 
 # Never run two collections at once: both would read and advance the same checkpoint.
 concurrency:
@@ -46,11 +51,12 @@ jobs:
       # The collector stops on its own after 24 minutes (between days) so the run ends
       # green; the step timeout is only a backstop for a day stuck in rate-limit waits.
       - name: Collect
+        if: ${{ !inputs.mirror_only }}
         timeout-minutes: 30
         run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 24
 
       - name: Export latest Ozempic comments
-        if: always()
+        if: ${{ always() && !inputs.mirror_only }}
         run: >-
           python scripts/extract_ozempic_comments.py
           --input data/curated/comments
@@ -74,7 +80,9 @@ jobs:
 
       # Mirror the data branch to the team repos. Needs a TEAM_REPO_TOKEN secret: a classic
       # personal access token (repo scope) from an account with write access to each repo.
-      # The empty extraheader drops the GITHUB_TOKEN auth that actions/checkout configured.
+      # The token goes in an auth header rather than the URL (no URL-escaping issues, stray
+      # whitespace from pasting is stripped); the empty extraheader first drops the
+      # GITHUB_TOKEN auth that actions/checkout configured.
       # Every repo is attempted; the step fails afterwards if any push failed.
       - name: Mirror data to team repos
         if: always()
@@ -89,11 +97,20 @@ jobs:
             echo "TEAM_REPO_TOKEN not set, skipping mirror"
             exit 0
           fi
+          token=$(printf %s "$TEAM_REPO_TOKEN" | tr -d '[:space:]')
+          case "$token" in
+            ghp_*) echo "Token: classic (${#token} chars)" ;;
+            github_pat_*) echo "::warning::Token is fine-grained; it cannot reach repos owned by another user. Use a classic token with repo scope." ;;
+            *) echo "::warning::Token does not start with ghp_ (${#token} chars); the secret may hold extra text." ;;
+          esac
+          auth=$(printf 'x-access-token:%s' "$token" | base64 -w0)
+          echo "::add-mask::$auth"
           failed=0
           for repo in $MIRROR_REPOS; do
             echo "Pushing data to $repo"
-            git -c http.https://github.com/.extraheader= push \
-              "https://x-access-token:${TEAM_REPO_TOKEN}@github.com/${repo}.git" \
-              "HEAD:data" || { echo "::error::push to $repo failed"; failed=1; }
+            git -c http.https://github.com/.extraheader= \
+                -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
+                push "https://github.com/${repo}.git" "HEAD:data" \
+              || { echo "::error::push to $repo failed"; failed=1; }
           done
           exit $failed
