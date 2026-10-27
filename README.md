@@ -111,7 +111,7 @@ GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.
 or variables are needed. The workflow pushes to the `data` branch with the built-in `GITHUB_TOKEN`
 (`permissions: contents: write`). Start a run by hand from the **Actions** tab → **Collect Reddit data**
 → **Run workflow**. A long backfill is spread across runs: the collector
-stops starting new days after 24 minutes (Collect step capped at 30, job at 40), and the next run continues from the checkpoint.
+stops starting new days after 5h20m (Collect step capped at 345 minutes, job at the 360-minute GitHub maximum), and the next run continues from the checkpoint.
 
 To work with the collected data locally:
 

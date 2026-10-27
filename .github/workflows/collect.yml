@@ -24,7 +24,7 @@ env:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 40   # room for export + commit after the 30-min Collect step
+    timeout-minutes: 360  # GitHub maximum; leaves room for export, commit and mirror after Collect
     steps:
       - uses: actions/checkout@v4
 
@@ -48,12 +48,12 @@ jobs:
             git -C data rm -rf --quiet .
           fi
 
-      # The collector stops on its own after 24 minutes (between days) so the run ends
+      # The collector stops on its own after 5h20m (between days) so the run ends
       # green; the step timeout is only a backstop for a day stuck in rate-limit waits.
       - name: Collect
         if: ${{ !inputs.mirror_only }}
-        timeout-minutes: 30
-        run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 24
+        timeout-minutes: 345
+        run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 320
 
       - name: Export latest Ozempic comments
         if: ${{ always() && !inputs.mirror_only }}
