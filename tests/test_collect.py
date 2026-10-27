@@ -79,3 +79,55 @@ def test_run_stops_starting_days_after_time_budget(monkeypatch, tmp_path):
     run(config, str(tmp_path), now=datetime(2024, 1, 5, tzinfo=timezone.utc), max_minutes=1)
 
     assert read_checkpoint(str(tmp_path)) == {"posts/A": "2024-01-02"}
+
+
+def test_get_keeps_retrying_rate_limits_until_time_limit(monkeypatch):
+    clock = {"now": 0.0}
+    monkeypatch.setattr("collector.collect.time.monotonic", lambda: clock["now"])
+    monkeypatch.setattr("collector.collect.time.time", lambda: 0.0)
+    monkeypatch.setattr(
+        "collector.collect.time.sleep", lambda s: clock.__setitem__("now", clock["now"] + s)
+    )
+    statuses = iter([422] * 8 + [200])  # more than the old 6-retry limit
+
+    class Response:
+        headers = {}
+
+        def __init__(self, status):
+            self.status_code = status
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": [{"id": "item"}]}
+
+    class Session:
+        def get(self, url, params, timeout):
+            return Response(next(statuses))
+
+    assert _get(Session(), "https://example.com/api", {}) == [{"id": "item"}]
+    assert clock["now"] < 20 * 60
+
+
+def test_get_gives_up_after_time_limit(monkeypatch):
+    import pytest
+
+    clock = {"now": 0.0}
+    monkeypatch.setattr("collector.collect.time.monotonic", lambda: clock["now"])
+    monkeypatch.setattr("collector.collect.time.time", lambda: 0.0)
+    monkeypatch.setattr(
+        "collector.collect.time.sleep", lambda s: clock.__setitem__("now", clock["now"] + s)
+    )
+
+    class Response:
+        status_code = 422
+        headers = {}
+
+    class Session:
+        def get(self, url, params, timeout):
+            return Response()
+
+    with pytest.raises(RuntimeError):
+        _get(Session(), "https://example.com/api", {})
+    assert 20 * 60 <= clock["now"] < 20 * 60 + 5 * 60 + 10

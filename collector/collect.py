@@ -12,6 +12,7 @@ Layout under DEST (local path or s3://bucket/prefix):
 """
 
 import argparse
+import itertools
 import json
 import logging
 import os
@@ -31,7 +32,11 @@ PAGE_LIMIT = 100
 # Arctic Shift answers 422 "Timeout. Maybe slow down a bit" above ~20 requests/min
 # and then blocks for several minutes, so stay below that.
 REQUEST_PAUSE_S = 3.0
-MAX_RETRIES = 6
+# A request keeps retrying until this much time has passed: rate-limit blocks can last
+# well over the old 6 retries (~6 min), which ended long runs early. Each wait is capped
+# so a stuck request still gives up well inside the workflow's step timeout.
+RETRY_FOR_S = 20 * 60
+MAX_WAIT_S = 5 * 60
 
 CURATED = {
     "posts": (post_to_schema, POST_FIELDS),
@@ -44,12 +49,15 @@ log = logging.getLogger("collector")
 # --- API ---------------------------------------------------------------------
 
 def _get(session, url, params):
-    for attempt in range(MAX_RETRIES):
+    give_up_at = time.monotonic() + RETRY_FOR_S
+    for attempt in itertools.count():
+        if time.monotonic() >= give_up_at:
+            break
         time.sleep(REQUEST_PAUSE_S)
         try:
             resp = session.get(url, params=params, timeout=30)
         except (requests.ConnectionError, requests.Timeout) as e:
-            wait = 2 ** attempt * 15
+            wait = min(2 ** attempt * 15, MAX_WAIT_S)
             log.warning("%s, retrying in %ds", type(e).__name__, wait)
             time.sleep(wait)
             continue
@@ -57,7 +65,7 @@ def _get(session, url, params):
         # (epoch ms) moves minutes ahead while x-ratelimit-reset still says <60s.
         if resp.status_code in (422, 429) or resp.status_code >= 500:
             reset_at = int(resp.headers.get("x-ratelimit-reset-at", 0)) / 1000
-            wait = max(reset_at - time.time(), 2 ** attempt * 5) + 5
+            wait = min(max(reset_at - time.time(), 2 ** attempt * 5) + 5, MAX_WAIT_S)
             log.warning("HTTP %s, retrying in %ds", resp.status_code, wait)
             time.sleep(wait)
             continue
