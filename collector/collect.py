@@ -30,13 +30,17 @@ API = "https://arctic-shift.photon-reddit.com/api"
 USER_AGENT = "ozempic-research-collector/0.1"
 PAGE_LIMIT = 100
 # Arctic Shift answers 422 "Timeout. Maybe slow down a bit" above ~20 requests/min
-# and then blocks for several minutes, so stay below that.
-REQUEST_PAUSE_S = 3.0
+# and then blocks for several minutes. With request latency, a 3s pause still tripped
+# blocks every ~10 minutes on long runs, so stay well below that.
+REQUEST_PAUSE_S = 4.0
 # A request keeps retrying until this much time has passed: rate-limit blocks can last
 # well over the old 6 retries (~6 min), which ended long runs early. Each wait is capped
 # so a stuck request still gives up well inside the workflow's step timeout.
 RETRY_FOR_S = 20 * 60
 MAX_WAIT_S = 5 * 60
+# When a request gives up during a time-budgeted run (API blocked or down), pause this
+# long and retry the same day instead of ending the run.
+COOLDOWN_S = 30 * 60
 
 CURATED = {
     "posts": (post_to_schema, POST_FIELDS),
@@ -183,11 +187,21 @@ def run(config, dest, now=None, max_minutes=None):
                      max_minutes)
             return
         kind, subreddit = min(pending, key=lambda k: pending[k][0])
-        day = pending[(kind, subreddit)].pop(0)
+        day = pending[(kind, subreddit)][0]
+        key = f"{kind}/{subreddit}"
+        try:
+            items = fetch_range(session, kind, subreddit, *day_bounds(day))
+        except RuntimeError as e:
+            if not deadline:
+                raise
+            log.warning("%s; pausing %d min, then retrying %s %s", e, COOLDOWN_S // 60, key, day)
+            if os.environ.get("GITHUB_ACTIONS"):
+                print(f"::warning::Arctic Shift API unavailable, paused collection: {e}", flush=True)
+            time.sleep(min(COOLDOWN_S, max(0, deadline - time.monotonic())))
+            continue
+        pending[(kind, subreddit)].pop(0)
         if not pending[(kind, subreddit)]:
             del pending[(kind, subreddit)]
-        key = f"{kind}/{subreddit}"
-        items = fetch_range(session, kind, subreddit, *day_bounds(day))
         write_raw(dest, kind, subreddit, day, items)
         write_curated(dest, kind, subreddit, day, items, ingested_at, curated_format)
         checkpoint[key] = (day + timedelta(days=1)).isoformat()

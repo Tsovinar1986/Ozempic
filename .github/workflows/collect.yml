@@ -48,12 +48,14 @@ jobs:
             git -C data rm -rf --quiet .
           fi
 
-      # The collector stops on its own after 5h20m (between days) so the run ends
-      # green; the step timeout is only a backstop for a day stuck in rate-limit waits.
+      # The collector stops on its own after 5h (between days) so the run ends
+      # green; the step timeout is only a backstop for a day stuck in rate-limit waits
+      # (one request can retry for up to 20 minutes past the budget). If the API stays
+      # blocked or down, the collector pauses and retries instead of failing the run.
       - name: Collect
         if: ${{ !inputs.mirror_only }}
         timeout-minutes: 345
-        run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 320
+        run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 300
 
       - name: Export latest Ozempic comments
         if: ${{ always() && !inputs.mirror_only }}

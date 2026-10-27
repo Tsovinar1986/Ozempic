@@ -131,3 +131,39 @@ def test_get_gives_up_after_time_limit(monkeypatch):
     with pytest.raises(RuntimeError):
         _get(Session(), "https://example.com/api", {})
     assert 20 * 60 <= clock["now"] < 20 * 60 + 5 * 60 + 10
+
+
+def test_run_pauses_and_retries_day_when_api_is_unavailable(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+
+    from collector.collect import read_checkpoint, run
+
+    clock = {"now": 0.0}
+    monkeypatch.setattr("collector.collect.time.monotonic", lambda: clock["now"])
+    monkeypatch.setattr(
+        "collector.collect.time.sleep", lambda s: clock.__setitem__("now", clock["now"] + s)
+    )
+    attempts = []
+
+    def fetch_range(session, kind, subreddit, start, end):
+        attempts.append(start)
+        if len(attempts) == 1:
+            raise RuntimeError("giving up")
+        return []
+
+    monkeypatch.setattr("collector.collect.fetch_range", fetch_range)
+    config = {
+        "subreddits": ["A"],
+        "kinds": ["posts"],
+        "start_date": "2024-01-01",
+        "settle_hours": 0,
+        "max_days_per_run": 2,
+        "curated_format": "jsonl",
+    }
+
+    run(config, str(tmp_path), now=datetime(2024, 1, 5, tzinfo=timezone.utc), max_minutes=300)
+
+    jan1 = 1704067200
+    assert attempts == [jan1, jan1, jan1 + 86400]
+    assert clock["now"] == 30 * 60
+    assert read_checkpoint(str(tmp_path)) == {"posts/A": "2024-01-03"}

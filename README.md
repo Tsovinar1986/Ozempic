@@ -111,7 +111,7 @@ GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.
 or variables are needed. The workflow pushes to the `data` branch with the built-in `GITHUB_TOKEN`
 (`permissions: contents: write`). Start a run by hand from the **Actions** tab → **Collect Reddit data**
 → **Run workflow**. A long backfill is spread across runs: the collector
-stops starting new days after 5h20m (Collect step capped at 345 minutes, job at the 360-minute GitHub maximum), and the next run continues from the checkpoint.
+stops starting new days after 5 hours (Collect step capped at 345 minutes, job at the 360-minute GitHub maximum), and the next run continues from the checkpoint.
 
 To work with the collected data locally:
 
@@ -125,6 +125,7 @@ git worktree add data origin/data    # ./data is git-ignored on main
 - Requests without a browser-like or custom `User-Agent` get **403** from Cloudflare.
 - `after` and `before` are both **exclusive**.
 - About 20 requests/min trips **422 `"Timeout. Maybe slow down a bit"`**, followed by a multi-minute
-  block (`x-ratelimit-reset-at` moves ahead). The collector sends 1 request per 3s and waits for `reset-at`.
+  block (`x-ratelimit-reset-at` moves ahead). The collector sends 1 request per 4s (3s still tripped blocks on long runs), waits for `reset-at`,
+  and if a request still fails after 20 minutes, pauses 30 minutes and retries the same day.
 - Volume (Oct 2026): roughly 6–120 posts/day per subreddit; comments up to ~2,000/day (r/Zepbound).
   One day of all 6 configured subreddits is about 50 requests, an estimated 3–4 minutes.
