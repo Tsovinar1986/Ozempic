@@ -71,12 +71,13 @@ Join comments to posts with `comment.post_id == post.fullname`.
 ## Collected data
 
 Everything the workflow collects lives on the **`data` branch**; `main` holds only code.
-Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far):
+Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far); the `data` branch's own
+README.md is regenerated after every run with current numbers:
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|
 | comments | 451,883 | Zepbound 162k · Mounjaro 114k · Semaglutide 86k · Ozempic 79k · tirzepatidecompound 9k · compoundedsemaglutide 1k | 2024-01-01 → 2024-04-08 |
-| posts | 141,633 | Zepbound 44k · Mounjaro 34k · Semaglutide 34k · Ozempic 24k · tirzepatidecompound 4.6k · compoundedsemaglutide 0.2k | 2024-01-01 → 2024-06-29 … 2025-03-26, depending on subreddit |
+| posts | 141,493 | Zepbound 44k · Mounjaro 34k · Semaglutide 34k · Ozempic 24k · tirzepatidecompound 4.6k · compoundedsemaglutide 0.1k | 2024-01-01 → 2024-06-29 … 2025-03-26, depending on subreddit |
 | Ozempic export | 14,563 | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2024-04-08 |
 
 Each run collects about 5 hours' worth (roughly 130–190 days of comments across all six
