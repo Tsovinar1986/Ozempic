@@ -30,3 +30,6 @@ def test_render_counts_rows_and_coverage(tmp_path):
     assert "**1 of 100,000**" in text
     assert "continues from 2024-01-03" in text
     assert "2026-10-28 12:00 UTC" in text
+    assert "| comments | 2 |" in text
+    assert "| Ozempic export | 1 of 100,000 |" in text
+    assert "https://github.com/UitbreidenAI/drug-exp-api.git ozempic-data" in text

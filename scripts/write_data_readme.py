@@ -11,6 +11,13 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 CODE_REPO = "https://github.com/Tsovinar1986/Ozempic"
+# The workflow pushes this same data branch to every repo below, so the README must not
+# name just one of them as "this" repo.
+DATA_REPOS = [
+    ("Tsovinar1986/Ozempic", "collection runs here"),
+    ("adele-kha/uitbreiden_drug_experience", "team copy"),
+    ("UitbreidenAI/drug-exp-api", "team copy"),
+]
 EXPORT = "exports/ozempic_100k_comments.csv"
 DATE_RE = re.compile(r"date=(\d{4}-\d{2}-\d{2})\.")
 
@@ -66,15 +73,38 @@ def render(data_dir, now):
         if export else "not generated yet"
     )
     oldest = min(checkpoint.values()) if checkpoint else "n/a"
+    comments = curated_stats(data_dir, "comments")
+    posts = curated_stats(data_dir, "posts")
+    n_comments = sum(rows for rows, _, _ in comments.values())
+    n_posts = sum(rows for rows, _, _ in posts.values())
+    repo_rows = "\n".join(
+        f"| [{name}](https://github.com/{name}/tree/data) | {note} | "
+        f"`git clone --branch data --single-branch https://github.com/{name}.git ozempic-data` |"
+        for name, note in DATA_REPOS
+    )
 
     return f"""# Ozempic Reddit data
 
-Collected daily from Reddit (via the Arctic Shift API) by the workflow in
-[Tsovinar1986/Ozempic]({CODE_REPO}). This branch holds only data; the code, the schema and
-how collection works are described in the [main README]({CODE_REPO}#readme).
+Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Arctic Shift
+API) by the workflow in [Tsovinar1986/Ozempic]({CODE_REPO}). This branch holds only data; the
+code, the schema and how collection works are described in the [main README]({CODE_REPO}#readme).
 
 _Updated automatically after every run. Last update: {now:%Y-%m-%d %H:%M} UTC.
 Oldest stream continues from {oldest}._
+
+## How much data
+
+| | rows |
+|---|---:|
+| comments | {n_comments:,} |
+| posts | {n_posts:,} |
+| Ozempic export | {export[0] if export else 0:,} of 100,000 |
+
+The same branch, identical after every run, is in each of these repositories:
+
+| repository | role | clone just the data |
+|---|---|---|
+{repo_rows}
 
 ## Ozempic export
 
@@ -84,9 +114,9 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-{_table("Comments", curated_stats(data_dir, "comments"))}
+{_table("Comments", comments)}
 
-{_table("Posts", curated_stats(data_dir, "posts"))}
+{_table("Posts", posts)}
 
 ## Files
 
@@ -100,9 +130,7 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Loading
 
-```bash
-git clone --branch data --single-branch {CODE_REPO}.git ozempic-data
-```
+After cloning from any repository above:
 
 ```python
 import glob
