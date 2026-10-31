@@ -5,26 +5,32 @@ on:
     - cron: "17 6 * * *"   # daily, 06:17 UTC
   workflow_dispatch:
     inputs:
-      mirror_only:
-        description: "Skip collection; only push the current data branch to the team repos"
-        type: boolean
-        default: false
+      max_minutes:
+        description: "Collection time budget in minutes (lower it for a quick test run)"
+        type: number
+        default: 300
 
 # Never run two collections at once: both would read and advance the same checkpoint.
 concurrency:
   group: reddit-collector
   cancel-in-progress: false
 
+# Collection runs here because this repository is public (free Actions minutes), but the
+# data lives only in the private team repository below. Reading and pushing it needs the
+# TEAM_REPO_TOKEN secret: a classic personal access token (repo scope) from an account with
+# write access to DATA_REPO. If it expires, runs fail at "Check out data branch" until it
+# is replaced; nothing is collected or lost meanwhile.
 permissions:
-  contents: write   # push collected data to the `data` branch
+  contents: read
 
 env:
+  DATA_REPO: UitbreidenAI/drug-exp-api
   DATA_BRANCH: data
 
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # GitHub maximum; leaves room for export, commit and mirror after Collect
+    timeout-minutes: 360  # GitHub maximum; leaves room for export and commit after Collect
     steps:
       - uses: actions/checkout@v4
 
@@ -35,30 +41,37 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      # Data and the checkpoint live on a separate branch, checked out at ./data.
-      # The first run creates it as an empty orphan branch.
+      # Data and the checkpoint live on DATA_REPO's data branch, cloned to ./data. The token
+      # goes in an auth header stored in that clone's own config (stray whitespace from pasting
+      # is stripped), so the later push authenticates too.
       - name: Check out data branch
+        env:
+          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
-          if git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null; then
-            git fetch --depth=1 origin "+refs/heads/${DATA_BRANCH}:refs/remotes/origin/${DATA_BRANCH}"
-            git worktree add -B "$DATA_BRANCH" data "origin/$DATA_BRANCH"
-          else
-            git worktree add --detach data
-            git -C data checkout --orphan "$DATA_BRANCH"
-            git -C data rm -rf --quiet .
+          token=$(printf %s "$TEAM_REPO_TOKEN" | tr -d '[:space:]')
+          if [ -z "$token" ]; then
+            echo "::error::TEAM_REPO_TOKEN secret is missing; it is needed to read and save data in $DATA_REPO"
+            exit 1
           fi
+          auth=$(printf 'x-access-token:%s' "$token" | base64 -w0)
+          echo "::add-mask::$auth"
+          header="AUTHORIZATION: basic $auth"
+          git -c http.https://github.com/.extraheader="$header" clone --quiet --depth=1 \
+            --branch "$DATA_BRANCH" "https://github.com/${DATA_REPO}.git" data
+          git -C data config http.https://github.com/.extraheader "$header"
 
       # The collector stops on its own after 5h (between days) so the run ends
       # green; the step timeout is only a backstop for a day stuck in rate-limit waits
       # (one request can retry for up to 20 minutes past the budget). If the API stays
       # blocked or down, the collector pauses and retries instead of failing the run.
       - name: Collect
-        if: ${{ !inputs.mirror_only }}
         timeout-minutes: 345
-        run: python -m collector.collect --config config/subreddits.yaml --dest data --max-minutes 300
+        run: >-
+          python -m collector.collect --config config/subreddits.yaml --dest data
+          --max-minutes ${{ inputs.max_minutes || 300 }}
 
       - name: Export latest Ozempic comments
-        if: ${{ always() && !inputs.mirror_only }}
+        if: always()
         run: >-
           python scripts/extract_ozempic_comments.py
           --input data/curated/comments
@@ -83,45 +96,3 @@ jobs:
               -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
               commit --quiet -m "Collect data (oldest next day: $through)"
           git push origin "HEAD:$DATA_BRANCH"
-
-      # Mirror the data branch to the team repos. Needs a TEAM_REPO_TOKEN secret: a classic
-      # personal access token (repo scope) from an account with write access to each repo.
-      # The token goes in an auth header rather than the URL (no URL-escaping issues, stray
-      # whitespace from pasting is stripped); the empty extraheader first drops the
-      # GITHUB_TOKEN auth that actions/checkout configured.
-      # Every repo is attempted; the step fails afterwards if any push failed.
-      - name: Mirror data to team repos
-        if: always()
-        working-directory: data
-        env:
-          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
-          MIRROR_REPOS: >-
-            adele-kha/uitbreiden_drug_experience
-            UitbreidenAI/drug-exp-api
-        run: |
-          if [ -z "$TEAM_REPO_TOKEN" ]; then
-            echo "TEAM_REPO_TOKEN not set, skipping mirror"
-            exit 0
-          fi
-          token=$(printf %s "$TEAM_REPO_TOKEN" | tr -d '[:space:]')
-          case "$token" in
-            ghp_*) echo "Token: classic (${#token} chars)" ;;
-            github_pat_*) echo "::warning::Token is fine-grained; it cannot reach repos owned by another user. Use a classic token with repo scope." ;;
-            *) echo "::warning::Token does not start with ghp_ (${#token} chars); the secret may hold extra text." ;;
-          esac
-          # The data branch was fetched shallow; without its history git can't tell a push
-          # to a repo that is behind is a fast-forward, and rejects it.
-          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-            git fetch --quiet --unshallow origin "$DATA_BRANCH"
-          fi
-          auth=$(printf 'x-access-token:%s' "$token" | base64 -w0)
-          echo "::add-mask::$auth"
-          failed=0
-          for repo in $MIRROR_REPOS; do
-            echo "Pushing data to $repo"
-            git -c http.https://github.com/.extraheader= \
-                -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
-                push "https://github.com/${repo}.git" "HEAD:data" \
-              || { echo "::error::push to $repo failed"; failed=1; }
-          done
-          exit $failed

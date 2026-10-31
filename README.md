@@ -33,8 +33,9 @@ cut short by its time budget still advances all streams evenly.
 Because every day maps to fixed file paths, a crash or a re-run overwrites the same files:
 no duplicates and no gaps.
 
-The scheduled workflow stores everything on the repository's `data` branch
-(created automatically on the first run, separate from the code):
+The workflow runs in this public repository (free GitHub Actions minutes) but stores everything
+on the `data` branch of the private team repository
+[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data):
 
 ```text
 data branch/
@@ -70,7 +71,8 @@ Join comments to posts with `comment.post_id == post.fullname`.
 
 ## Collected data
 
-Everything the workflow collects lives on the **`data` branch**; `main` holds only code.
+Everything the workflow collects lives on the **`data` branch of
+[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data)**; this repository holds only code.
 Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far); the `data` branch's own
 README.md is regenerated after every run with current numbers:
 
@@ -99,12 +101,12 @@ The CSV `body` field can contain line breaks, so count rows with a CSV reader, n
 
 ### Getting the data
 
-Browse it on GitHub by switching the branch selector to `data`, or check it out next to the code:
+Browse it on GitHub in drug-exp-api with the branch selector set to `data` (you need access to that
+private repository), or clone it next to the code:
 
 ```bash
-git fetch origin data
-git worktree add data origin/data    # ./data is git-ignored on main
-git -C data pull                     # later, to get new days
+git clone --branch data --single-branch https://github.com/UitbreidenAI/drug-exp-api.git data
+git -C data pull                     # later, to get new days; ./data is git-ignored here
 ```
 
 Load it in Python:
@@ -119,13 +121,12 @@ comments = pd.concat(
 ozempic = pd.read_csv("data/exports/ozempic_100k_comments.csv")
 ```
 
-### Team copies
+### Where it used to be
 
-After every run the workflow pushes the same `data` branch to the team repositories
-[adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data)
-and [UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data), so all three
-are identical. The code is kept on their `research-data-reddit` branches. Pushing there needs the
-`TEAM_REPO_TOKEN` secret (see the GitHub Actions setup below); without it the copy step is skipped.
+Until 2026-10-31 the data was stored on this repository's own `data` branch and copied to
+drug-exp-api and [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
+Those copies stopped updating then; drug-exp-api continued from the same checkpoint. The code is
+also kept on the `research-data-reddit` branch of both team repositories.
 
 ### Size
 
@@ -173,13 +174,12 @@ contain fewer until enough matching data has been collected. The daily collector
 continues to add data independently. Override paths or the cap with `--input`,
 `--output`, and `--limit`.
 
-GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)): collection
-needs no secrets. The workflow pushes to the `data` branch with the built-in `GITHUB_TOKEN`
-(`permissions: contents: write`). Copying to the [team repositories](#team-copies) needs a
-`TEAM_REPO_TOKEN` secret: a classic personal access token with the `repo` scope from an account
-that can push to them. When it expires, only the copy step fails; collection continues. Start a run by hand from the **Actions** tab → **Collect Reddit data**
-→ **Run workflow**; tick **mirror_only** to skip collection and only test the copy
-to the team repositories (about a minute). A long backfill is spread across runs: the collector
+GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)): the workflow
+reads and pushes drug-exp-api's `data` branch with the `TEAM_REPO_TOKEN` secret: a classic personal
+access token with the `repo` scope from an account with write access to drug-exp-api. When it
+expires, runs fail at **Check out data branch** until the secret is replaced; nothing is lost
+meanwhile. Start a run by hand from the **Actions** tab → **Collect Reddit data** → **Run workflow**;
+set **max_minutes** to e.g. 5 for a quick test. A long backfill is spread across runs: the collector
 stops starting new days after 5 hours (Collect step capped at 345 minutes, job at the 360-minute GitHub maximum), and the next run continues from the checkpoint.
 
 ## Arctic Shift API notes (measured 2026-10-11)

@@ -11,12 +11,9 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 CODE_REPO = "https://github.com/Tsovinar1986/Ozempic"
-# The workflow pushes this same data branch to every repo below, so the README must not
-# name just one of them as "this" repo.
+# Collection runs in CODE_REPO (public, so Actions minutes are free); data is stored here.
 DATA_REPOS = [
-    ("Tsovinar1986/Ozempic", "collection runs here"),
-    ("adele-kha/uitbreiden_drug_experience", "team copy"),
-    ("UitbreidenAI/drug-exp-api", "team copy"),
+    ("UitbreidenAI/drug-exp-api", "data is stored here"),
 ]
 EXPORT = "exports/ozempic_100k_comments.csv"
 DATE_RE = re.compile(r"date=(\d{4}-\d{2}-\d{2})\.")
@@ -100,7 +97,7 @@ Oldest stream continues from {oldest}._
 | posts | {n_posts:,} |
 | Ozempic export | {export[0] if export else 0:,} of 100,000 |
 
-The same branch, identical after every run, is in each of these repositories:
+Where to get it:
 
 | repository | role | clone just the data |
 |---|---|---|
