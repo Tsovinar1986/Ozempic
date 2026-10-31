@@ -4,29 +4,29 @@ Collected daily from Reddit (via the Arctic Shift API) by the workflow in
 [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the code, the schema and
 how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
 
-_Updated automatically after every run. Last update: 2026-10-30 18:03 UTC.
-Oldest stream continues from 2024-07-27._
+_Updated automatically after every run. Last update: 2026-10-31 17:40 UTC.
+Oldest stream continues from 2024-08-14._
 
 ## Ozempic export
 
-`exports/ozempic_100k_comments.csv`: **32,281 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2024-07-27).
+`exports/ozempic_100k_comments.csv`: **34,697 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2024-08-14).
 Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
 Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-**Comments: 1,147,685 rows**
+**Comments: 1,261,709 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 417,150 | 2024-01-01 | 2024-07-27 |
-| Mounjaro | 221,651 | 2024-01-01 | 2024-07-27 |
-| Semaglutide | 212,199 | 2024-01-01 | 2024-07-27 |
-| Ozempic | 182,607 | 2024-01-01 | 2024-07-27 |
-| tirzepatidecompound | 111,909 | 2024-01-01 | 2024-07-26 |
-| compoundedsemaglutide | 2,169 | 2024-01-01 | 2024-07-26 |
+| Zepbound | 451,750 | 2024-01-01 | 2024-08-13 |
+| Mounjaro | 238,177 | 2024-01-01 | 2024-08-14 |
+| Semaglutide | 230,791 | 2024-01-01 | 2024-08-14 |
+| Ozempic | 197,828 | 2024-01-01 | 2024-08-14 |
+| tirzepatidecompound | 139,957 | 2024-01-01 | 2024-08-13 |
+| compoundedsemaglutide | 3,206 | 2024-01-01 | 2024-08-13 |
 
-**Posts: 143,346 rows**
+**Posts: 144,851 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
@@ -34,8 +34,8 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 | Mounjaro | 34,308 | 2024-01-01 | 2025-03-25 |
 | Semaglutide | 34,190 | 2024-01-01 | 2025-03-25 |
 | Ozempic | 23,946 | 2024-01-01 | 2025-03-25 |
-| tirzepatidecompound | 6,407 | 2024-01-01 | 2024-07-27 |
-| compoundedsemaglutide | 137 | 2024-01-01 | 2024-07-27 |
+| tirzepatidecompound | 7,806 | 2024-01-01 | 2024-08-14 |
+| compoundedsemaglutide | 243 | 2024-01-01 | 2024-08-14 |
 
 ## Files
 
