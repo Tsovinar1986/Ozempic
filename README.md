@@ -1,32 +1,46 @@
 # Ozempic Reddit data
 
-Collected daily from Reddit (via the Arctic Shift API) by the workflow in
-[Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the code, the schema and
-how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
+Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Arctic Shift
+API) by the workflow in [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the
+code, the schema and how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
 
-_Updated automatically after every run. Last update: 2026-10-31 17:40 UTC.
-Oldest stream continues from 2024-08-14._
+_Updated automatically after every run. Last update: 2026-11-01 18:31 UTC.
+Oldest stream continues from 2024-10-02._
+
+## How much data
+
+| | rows |
+|---|---:|
+| comments | 1,576,076 |
+| posts | 149,049 |
+| Ozempic export | 41,617 of 100,000 |
+
+Where to get it:
+
+| repository | role | clone just the data |
+|---|---|---|
+| [UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data) | data is stored here | `git clone --branch data --single-branch https://github.com/UitbreidenAI/drug-exp-api.git ozempic-data` |
 
 ## Ozempic export
 
-`exports/ozempic_100k_comments.csv`: **34,697 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2024-08-14).
+`exports/ozempic_100k_comments.csv`: **41,617 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2024-10-01).
 Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
 Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-**Comments: 1,261,709 rows**
+**Comments: 1,576,076 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 451,750 | 2024-01-01 | 2024-08-13 |
-| Mounjaro | 238,177 | 2024-01-01 | 2024-08-14 |
-| Semaglutide | 230,791 | 2024-01-01 | 2024-08-14 |
-| Ozempic | 197,828 | 2024-01-01 | 2024-08-14 |
-| tirzepatidecompound | 139,957 | 2024-01-01 | 2024-08-13 |
-| compoundedsemaglutide | 3,206 | 2024-01-01 | 2024-08-13 |
+| Zepbound | 555,654 | 2024-01-01 | 2024-10-01 |
+| Semaglutide | 284,211 | 2024-01-01 | 2024-10-01 |
+| Mounjaro | 278,189 | 2024-01-01 | 2024-10-01 |
+| Ozempic | 237,657 | 2024-01-01 | 2024-10-01 |
+| tirzepatidecompound | 212,896 | 2024-01-01 | 2024-10-01 |
+| compoundedsemaglutide | 7,469 | 2024-01-01 | 2024-10-01 |
 
-**Posts: 144,851 rows**
+**Posts: 149,049 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
@@ -34,8 +48,8 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 | Mounjaro | 34,308 | 2024-01-01 | 2025-03-25 |
 | Semaglutide | 34,190 | 2024-01-01 | 2025-03-25 |
 | Ozempic | 23,946 | 2024-01-01 | 2025-03-25 |
-| tirzepatidecompound | 7,806 | 2024-01-01 | 2024-08-14 |
-| compoundedsemaglutide | 243 | 2024-01-01 | 2024-08-14 |
+| tirzepatidecompound | 11,617 | 2024-01-01 | 2024-10-01 |
+| compoundedsemaglutide | 630 | 2024-01-01 | 2024-10-01 |
 
 ## Files
 
@@ -49,9 +63,7 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Loading
 
-```bash
-git clone --branch data --single-branch https://github.com/Tsovinar1986/Ozempic.git ozempic-data
-```
+After cloning from any repository above:
 
 ```python
 import glob
