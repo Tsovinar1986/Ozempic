@@ -4,52 +4,75 @@ Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Ar
 API) by the workflow in [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the
 code, the schema and how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
 
-_Updated automatically after every run. Last update: 2026-11-17 21:10 UTC.
-Oldest stream continues from 2025-05-21._
+_Updated automatically after every run. Last update: 2026-11-17 22:34 UTC.
+Oldest stream continues from 2025-05-22._
+
+**Ozempic comments: 71,004 of 100,000 (71.0%)** `██████████████░░░░░░`
 
 ## How much data
 
 | | rows |
 |---|---:|
-| comments | 3,438,005 |
-| posts | 226,670 |
-| Ozempic export | 70,920 of 100,000 |
+| comments | 3,441,442 |
+| posts | 227,192 |
+| Ozempic export | 71,004 of 100,000 (71.0%) |
 
-Where to get it:
+## Latest run
+
+The run at 2026-11-17 22:34 UTC added **+3,437 comments**, **+522 posts** and **+84** Ozempic comments (now 71,004 of 100,000 (71.0%)); the oldest stream moved from 2025-05-21 to 2025-05-22.
+
+Recent runs (newest first; full list in `state/run_history.jsonl`):
+
+| run (UTC) | comments added | posts added | export rows added | comments total | posts total | oldest next day |
+|---|---:|---:|---:|---:|---:|---|
+| 2026-11-17 22:34 | +3,437 | +522 | +84 | 3,441,442 | 227,192 | 2025-05-22 |
+
+## Where to get it
 
 | repository | role | clone just the data |
 |---|---|---|
-| [UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data) | data is stored here | `git clone --branch data --single-branch https://github.com/UitbreidenAI/drug-exp-api.git ozempic-data` |
+| [UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data) | main copy (private) | `git clone --branch data --single-branch https://github.com/UitbreidenAI/drug-exp-api.git ozempic-data` |
+| [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic/tree/data) | synced after every run (public) | `git clone --branch data --single-branch https://github.com/Tsovinar1986/Ozempic.git ozempic-data` |
+| [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data) | synced after every run (private) | `git clone --branch data --single-branch https://github.com/adele-kha/uitbreiden_drug_experience.git ozempic-data` |
 
-## Ozempic export
+## Ozempic export: 71,004 of 100,000 (71.0%)
 
-`exports/ozempic_100k_comments.csv`: **70,920 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2025-05-21).
-Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
+`██████████████░░░░░░` **71,004 of 100,000 (71.0%)** comments mentioning "ozempic" collected so far.
+
+| | |
+|---|---:|
+| collected | 71,004 |
+| target | 100,000 |
+| still to collect | 28,996 |
+| added by the latest run | +84 |
+| comment dates | 2024-01-01 → 2025-05-22 |
+
+File: `exports/ozempic_100k_comments.csv`. Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
 Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-**Comments: 3,438,005 rows**
+**Comments: 3,441,442 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
 | Zepbound | 1,227,291 | 2024-01-01 | 2025-05-21 |
-| tirzepatidecompound | 730,677 | 2024-01-01 | 2025-05-20 |
+| tirzepatidecompound | 733,079 | 2024-01-01 | 2025-05-21 |
 | Semaglutide | 521,890 | 2024-01-01 | 2025-05-21 |
 | Mounjaro | 519,235 | 2024-01-01 | 2025-05-21 |
-| Ozempic | 403,524 | 2024-01-01 | 2025-05-21 |
-| compoundedsemaglutide | 35,388 | 2024-01-01 | 2025-05-20 |
+| Ozempic | 404,460 | 2024-01-01 | 2025-05-22 |
+| compoundedsemaglutide | 35,487 | 2024-01-01 | 2025-05-21 |
 
-**Posts: 226,670 rows**
+**Posts: 227,192 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 82,277 | 2024-01-01 | 2025-05-21 |
-| Mounjaro | 39,459 | 2024-01-01 | 2025-05-21 |
-| Semaglutide | 38,048 | 2024-01-01 | 2025-05-21 |
-| tirzepatidecompound | 37,183 | 2024-01-01 | 2025-05-21 |
-| Ozempic | 26,378 | 2024-01-01 | 2025-05-21 |
-| compoundedsemaglutide | 3,325 | 2024-01-01 | 2025-05-21 |
+| Zepbound | 82,493 | 2024-01-01 | 2025-05-22 |
+| Mounjaro | 39,548 | 2024-01-01 | 2025-05-22 |
+| Semaglutide | 38,102 | 2024-01-01 | 2025-05-22 |
+| tirzepatidecompound | 37,290 | 2024-01-01 | 2025-05-22 |
+| Ozempic | 26,418 | 2024-01-01 | 2025-05-22 |
+| compoundedsemaglutide | 3,341 | 2024-01-01 | 2025-05-22 |
 
 ## Files
 
@@ -60,6 +83,8 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 | `exports/ozempic_100k_comments.csv` | up to 100,000 most recent comments mentioning "ozempic" |
 | `raw/<kind>/subreddit=<name>/date=<YYYY-MM-DD>.jsonl.gz` | the API response, unchanged |
 | `state/checkpoint.json` | next day to collect per stream |
+| `state/run_history.jsonl` | totals after each run that added data, behind the "Latest run" numbers |
+| `state/progress.json` | headline numbers, read by the progress badge in the main README |
 
 ## Loading
 
