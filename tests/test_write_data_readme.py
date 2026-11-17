@@ -6,6 +6,7 @@ from scripts.write_data_readme import (
     read_history,
     record_run,
     render,
+    update_main_readme,
     write_progress,
 )
 
@@ -105,3 +106,19 @@ def test_export_progress_and_progress_json(tmp_path):
     progress = json.loads((tmp_path / "state" / "progress.json").read_text())
     assert progress["ozempic_export"] == "5 of 100,000 (0.0%)"
     assert export_progress(69735) == "69,735 of 100,000 (69.7%)"
+
+
+def test_main_readme_block_is_replaced(tmp_path):
+    _write_comments(tmp_path, 4)
+    _write_checkpoint(tmp_path, "2024-01-02")
+    readme = tmp_path / "MAIN.md"
+    readme.write_text("# Code\n\n<!-- data-stats:start -->\nold\n<!-- data-stats:end -->\n\nrest\n")
+    now = datetime(2026, 11, 18, 6, 0, tzinfo=timezone.utc)
+
+    assert update_main_readme(readme, tmp_path, now)
+    text = readme.read_text()
+    assert "old" not in text and text.endswith("\n\nrest\n")
+    assert "| comments | 4 | Ozempic 4 | 2024-01-01 → 2024-01-01 |" in text
+    assert "**Ozempic export: 0 of 100,000 (0.0%)**" in text
+    assert "next day to collect: 2024-01-02" in text
+    assert not update_main_readme(readme, tmp_path, now)  # unchanged on a second pass

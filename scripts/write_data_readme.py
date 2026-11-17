@@ -293,12 +293,91 @@ ozempic = pd.read_csv("ozempic-data/{EXPORT}")
 """
 
 
+MAIN_START = "<!-- data-stats:start -->"
+MAIN_END = "<!-- data-stats:end -->"
+
+
+def _compact(n):
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.2f}M"
+    if n >= 10_000:
+        return f"{n / 1000:.0f}k"
+    if n >= 100:
+        return f"{n / 1000:.1f}k"
+    return str(n)
+
+
+def _summary_row(kind, stats):
+    total = sum(rows for rows, _, _ in stats.values())
+    by_sub = " · ".join(
+        f"{sub} {_compact(rows)}" for sub, (rows, _, _) in sorted(stats.items(), key=lambda kv: -kv[1][0])
+    )
+    if not stats:
+        return f"| {kind} | 0 | | |"
+    first = min(f for _, f, _ in stats.values())
+    lasts = sorted(l for _, _, l in stats.values())
+    days = f"{first} → {lasts[0]}" if lasts[0] == lasts[-1] else f"{first} → {lasts[0]} … {lasts[-1]}"
+    return f"| {kind} | {total:,} | {by_sub} | {days} |"
+
+
+def main_readme_block(data_dir, now):
+    """The numbers block of the code repository's README, between MAIN_START and MAIN_END."""
+    export = export_stats(data_dir)
+    rows = export[0] if export else 0
+    history = read_history(data_dir)
+    checkpoint_path = data_dir / "state" / "checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text()) if checkpoint_path.exists() else {}
+    remaining = f"{EXPORT_TARGET - rows:,} still to collect" if rows < EXPORT_TARGET else "target reached"
+    latest = ""
+    if len(history) >= 2:
+        prev, last = history[-2], history[-1]
+        latest = (
+            f" The latest run ({last['time']} UTC) added {_delta(last['comments'] - prev['comments'])} comments, "
+            f"{_delta(last['posts'] - prev['posts'])} posts and "
+            f"{_delta(last['export'] - prev['export'])} Ozempic comments."
+        )
+    export_days = f"{export[1]} → {export[2]}" if export and export[0] else ""
+    return f"""{MAIN_START}
+<!-- Written by scripts/write_data_readme.py after every collection run; edits here are overwritten. -->
+**Ozempic export: {export_progress(rows)}** `{_bar(rows)}` {remaining}.
+
+_Numbers as of {now:%Y-%m-%d %H:%M} UTC; next day to collect: {min(checkpoint.values()) if checkpoint else "n/a"}.{latest}_
+
+| | rows | by subreddit | days covered |
+|---|---:|---|---|
+{_summary_row("comments", curated_stats(data_dir, "comments"))}
+{_summary_row("posts", curated_stats(data_dir, "posts"))}
+| Ozempic export | {export_progress(rows)} | comments from any subreddit mentioning "ozempic" | {export_days} |
+{MAIN_END}"""
+
+
+def update_main_readme(readme, data_dir, now):
+    """Replace the block between the markers in readme; True if the file changed."""
+    text = readme.read_text(encoding="utf-8")
+    start, end = text.find(MAIN_START), text.find(MAIN_END)
+    if start < 0 or end < start:
+        raise SystemExit(f"{readme}: markers {MAIN_START} / {MAIN_END} not found")
+    new = text[:start] + main_readme_block(data_dir, now) + text[end + len(MAIN_END):]
+    if new == text:
+        return False
+    readme.write_text(new, encoding="utf-8")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", default="data", help="data branch checkout (default: ./data)")
+    parser.add_argument(
+        "--main-readme",
+        help="instead: only refresh the numbers block in this README of the code repository",
+    )
     args = parser.parse_args()
     data_dir = Path(args.data)
     now = datetime.now(timezone.utc)
+    if args.main_readme:
+        changed = update_main_readme(Path(args.main_readme), data_dir, now)
+        print("main README numbers updated" if changed else "main README numbers unchanged")
+        return
     record_run(data_dir, now)
     write_progress(data_dir, now)
     (data_dir / "README.md").write_text(render(data_dir, now), encoding="utf-8")

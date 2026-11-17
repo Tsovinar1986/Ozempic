@@ -84,19 +84,23 @@ after every run to the `data` branch of [this repository](https://github.com/Tso
 and of [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
 The `main` branch here holds only code.
 
-**Ozempic export progress: 69,735 of 100,000 comments (69.7%), 30,265 still to collect**
-(snapshot on 2026-11-16; the badge at the top of this page shows the current number).
+<!-- data-stats:start -->
+<!-- Written by scripts/write_data_readme.py after every collection run; edits here are overwritten. -->
+**Ozempic export: 69,735 of 100,000 (69.7%)** `██████████████░░░░░░` 30,265 still to collect.
 
-The `data` branch's own README.md is regenerated after every run with current numbers, the same
-"X of 100,000" progress, and a **Latest run** section showing how many comments, posts and Ozempic
-comments that run added (history in `state/run_history.jsonl`, headline numbers in
-`state/progress.json`). Snapshot on 2026-11-16 (all streams collected through 2025-05-12):
+_Numbers as of 2026-11-16 21:10 UTC; next day to collect: 2025-05-12._
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|
-| comments | 3,355,212 | Zepbound 1.19M · tirzepatidecompound 711k · Semaglutide 513k · Mounjaro 507k · Ozempic 397k · compoundedsemaglutide 34k | 2024-01-01 → 2025-05-12 |
+| comments | 3,355,212 | Zepbound 1.19M · tirzepatidecompound 711k · Semaglutide 513k · Mounjaro 507k · Ozempic 397k · compoundedsemaglutide 34k | 2024-01-01 → 2025-05-11 … 2025-05-12 |
 | posts | 221,526 | Zepbound 80k · Mounjaro 39k · Semaglutide 37k · tirzepatidecompound 36k · Ozempic 26k · compoundedsemaglutide 3.2k | 2024-01-01 → 2025-05-12 |
 | Ozempic export | 69,735 of 100,000 (69.7%) | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2025-05-12 |
+<!-- data-stats:end -->
+
+The block above is rewritten on `main` by the workflow after every run. The `data` branch's own README.md is regenerated after every run with current numbers, the same
+"X of 100,000" progress, and a **Latest run** section showing how many comments, posts and Ozempic
+comments that run added (history in `state/run_history.jsonl`, headline numbers in
+`state/progress.json`).
 
 Each run collects about 5 hours' worth (roughly 130–190 days of comments across all six
 subreddits) and always continues with the subreddit that is furthest behind, so comments are

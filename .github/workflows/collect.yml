@@ -140,3 +140,25 @@ jobs:
           sync "$GITHUB_REPOSITORY" "$GH_TOKEN"
           sync adele-kha/uitbreiden_drug_experience "$TEAM_REPO_TOKEN"
           exit $failed
+
+      # Refresh the numbers block in this repository's README.md on main, so the code page
+      # always shows how much has been collected. Uses GITHUB_TOKEN (contents: write); pushes
+      # made with it do not trigger other workflows. Rebases first in case main moved during
+      # the run; only README.md's marked block changes, so the rebase does not conflict.
+      - name: Update numbers in main README
+        if: ${{ always() && github.ref == 'refs/heads/main' }}
+        run: |
+          if [ ! -d data/.git ]; then
+            echo "No data checkout; README numbers left as they are"
+            exit 0
+          fi
+          python scripts/write_data_readme.py --data data --main-readme README.md
+          if git diff --quiet -- README.md; then
+            exit 0
+          fi
+          git add README.md
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Update collected-data numbers in README"
+          git pull --quiet --rebase origin main
+          git push origin HEAD:main
