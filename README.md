@@ -4,16 +4,16 @@ Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Ar
 API) by the workflow in [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the
 code, the schema and how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
 
-_Updated automatically after every run. Last update: 2026-11-16 21:10 UTC.
-Oldest stream continues from 2025-05-12._
+_Updated automatically after every run. Last update: 2026-11-17 21:10 UTC.
+Oldest stream continues from 2025-05-21._
 
 ## How much data
 
 | | rows |
 |---|---:|
-| comments | 3,355,212 |
-| posts | 221,526 |
-| Ozempic export | 69,735 of 100,000 |
+| comments | 3,438,005 |
+| posts | 226,670 |
+| Ozempic export | 70,920 of 100,000 |
 
 Where to get it:
 
@@ -23,33 +23,33 @@ Where to get it:
 
 ## Ozempic export
 
-`exports/ozempic_100k_comments.csv`: **69,735 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2025-05-12).
+`exports/ozempic_100k_comments.csv`: **70,920 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2025-05-21).
 Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
 Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-**Comments: 3,355,212 rows**
+**Comments: 3,438,005 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 1,191,808 | 2024-01-01 | 2025-05-12 |
-| tirzepatidecompound | 711,198 | 2024-01-01 | 2025-05-11 |
-| Semaglutide | 513,069 | 2024-01-01 | 2025-05-12 |
-| Mounjaro | 507,431 | 2024-01-01 | 2025-05-12 |
-| Ozempic | 397,262 | 2024-01-01 | 2025-05-12 |
-| compoundedsemaglutide | 34,444 | 2024-01-01 | 2025-05-11 |
+| Zepbound | 1,227,291 | 2024-01-01 | 2025-05-21 |
+| tirzepatidecompound | 730,677 | 2024-01-01 | 2025-05-20 |
+| Semaglutide | 521,890 | 2024-01-01 | 2025-05-21 |
+| Mounjaro | 519,235 | 2024-01-01 | 2025-05-21 |
+| Ozempic | 403,524 | 2024-01-01 | 2025-05-21 |
+| compoundedsemaglutide | 35,388 | 2024-01-01 | 2025-05-20 |
 
-**Posts: 221,526 rows**
+**Posts: 226,670 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 80,171 | 2024-01-01 | 2025-05-12 |
-| Mounjaro | 38,595 | 2024-01-01 | 2025-05-12 |
-| Semaglutide | 37,426 | 2024-01-01 | 2025-05-12 |
-| tirzepatidecompound | 36,102 | 2024-01-01 | 2025-05-12 |
-| Ozempic | 25,991 | 2024-01-01 | 2025-05-12 |
-| compoundedsemaglutide | 3,241 | 2024-01-01 | 2025-05-12 |
+| Zepbound | 82,277 | 2024-01-01 | 2025-05-21 |
+| Mounjaro | 39,459 | 2024-01-01 | 2025-05-21 |
+| Semaglutide | 38,048 | 2024-01-01 | 2025-05-21 |
+| tirzepatidecompound | 37,183 | 2024-01-01 | 2025-05-21 |
+| Ozempic | 26,378 | 2024-01-01 | 2025-05-21 |
+| compoundedsemaglutide | 3,325 | 2024-01-01 | 2025-05-21 |
 
 ## Files
 
