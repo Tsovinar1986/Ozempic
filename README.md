@@ -1,5 +1,9 @@
 # Ozempic Reddit data pipeline
 
+[![Ozempic comments](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FTsovinar1986%2FOzempic%2Fdata%2Fstate%2Fprogress.json&query=%24.ozempic_export&label=Ozempic%20comments&color=blue)](https://github.com/Tsovinar1986/Ozempic/tree/data)
+[![comments](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FTsovinar1986%2FOzempic%2Fdata%2Fstate%2Fprogress.json&query=%24.comments&label=comments%20collected&color=informational)](https://github.com/Tsovinar1986/Ozempic/tree/data)
+[![updated](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FTsovinar1986%2FOzempic%2Fdata%2Fstate%2Fprogress.json&query=%24.updated&label=last%20update&color=lightgrey)](https://github.com/Tsovinar1986/Ozempic/actions/workflows/collect.yml)
+
 Automated daily collection of posts and comments from GLP-1 subreddits (task 2.1),
 normalized into a fixed schema.
 
@@ -79,15 +83,20 @@ Everything the workflow collects lives on the **`data` branch of
 after every run to the `data` branch of [this repository](https://github.com/Tsovinar1986/Ozempic/tree/data)
 and of [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
 The `main` branch here holds only code.
-Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far); the `data` branch's own
-README.md is regenerated after every run with current numbers and a **Latest run** section showing how
-many comments, posts and export rows that run added (history in `state/run_history.jsonl`):
+
+**Ozempic export progress: 69,735 of 100,000 comments (69.7%), 30,265 still to collect**
+(snapshot on 2026-11-16; the badge at the top of this page shows the current number).
+
+The `data` branch's own README.md is regenerated after every run with current numbers, the same
+"X of 100,000" progress, and a **Latest run** section showing how many comments, posts and Ozempic
+comments that run added (history in `state/run_history.jsonl`, headline numbers in
+`state/progress.json`). Snapshot on 2026-11-16 (all streams collected through 2025-05-12):
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|
-| comments | 451,883 | Zepbound 162k · Mounjaro 114k · Semaglutide 86k · Ozempic 79k · tirzepatidecompound 9k · compoundedsemaglutide 1k | 2024-01-01 → 2024-04-08 |
-| posts | 141,493 | Zepbound 44k · Mounjaro 34k · Semaglutide 34k · Ozempic 24k · tirzepatidecompound 4.6k · compoundedsemaglutide 0.1k | 2024-01-01 → 2024-06-29 … 2025-03-26, depending on subreddit |
-| Ozempic export | 14,563 | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2024-04-08 |
+| comments | 3,355,212 | Zepbound 1.19M · tirzepatidecompound 711k · Semaglutide 513k · Mounjaro 507k · Ozempic 397k · compoundedsemaglutide 34k | 2024-01-01 → 2025-05-12 |
+| posts | 221,526 | Zepbound 80k · Mounjaro 39k · Semaglutide 37k · tirzepatidecompound 36k · Ozempic 26k · compoundedsemaglutide 3.2k | 2024-01-01 → 2025-05-12 |
+| Ozempic export | 69,735 of 100,000 (69.7%) | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2025-05-12 |
 
 Each run collects about 5 hours' worth (roughly 130–190 days of comments across all six
 subreddits) and always continues with the subreddit that is furthest behind, so comments are

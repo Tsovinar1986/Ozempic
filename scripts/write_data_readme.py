@@ -19,6 +19,8 @@ DATA_REPOS = [
     ("adele-kha/uitbreiden_drug_experience", "synced after every run (private)"),
 ]
 EXPORT = "exports/ozempic_100k_comments.csv"
+EXPORT_TARGET = 100_000
+PROGRESS = "state/progress.json"
 HISTORY = "state/run_history.jsonl"  # one line of totals per run that changed the data
 RECENT_RUNS = 10
 DATE_RE = re.compile(r"date=(\d{4}-\d{2}-\d{2})\.")
@@ -146,7 +148,8 @@ def _runs_section(history):
         "",
         f"The run at {last['time']} UTC added **{_delta(last['comments'] - prev['comments'])} comments**, "
         f"**{_delta(last['posts'] - prev['posts'])} posts** and "
-        f"**{_delta(last['export'] - prev['export'])}** rows in the Ozempic export{moved}.",
+        f"**{_delta(last['export'] - prev['export'])}** Ozempic comments "
+        f"(now {export_progress(last['export'])}){moved}.",
         "",
         f"Recent runs (newest first; full list in `{HISTORY}`):",
         "",
@@ -162,14 +165,60 @@ def _runs_section(history):
     return "\n".join(lines)
 
 
+def _bar(rows, width=20):
+    filled = min(width, round(width * rows / EXPORT_TARGET))
+    return "█" * filled + "░" * (width - filled)
+
+
+def export_progress(rows):
+    """'69,735 of 100,000 (69.7%)'."""
+    return f"{rows:,} of {EXPORT_TARGET:,} ({100 * rows / EXPORT_TARGET:.1f}%)"
+
+
+def _export_section(export, history):
+    rows, first, last = export if export else (0, "", "")
+    added = (
+        _delta(history[-1]["export"] - history[-2]["export"]) if len(history) >= 2 else "not known yet"
+    )
+    remaining = (
+        f"{EXPORT_TARGET - rows:,}" if rows < EXPORT_TARGET
+        else "0: target reached; each run now swaps the oldest comments for newer ones"
+    )
+    return f"""## Ozempic export: {export_progress(rows)}
+
+`{_bar(rows)}` **{export_progress(rows)}** comments mentioning "ozempic" collected so far.
+
+| | |
+|---|---:|
+| collected | {rows:,} |
+| target | {EXPORT_TARGET:,} |
+| still to collect | {remaining} |
+| added by the latest run | {added} |
+| comment dates | {f"{first} → {last}" if export else "n/a"} |
+
+File: `{EXPORT}`. Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
+Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`."""
+
+
+def write_progress(data_dir, now):
+    """state/progress.json: headline numbers for the badge in the main README."""
+    snap = snapshot(data_dir, now)
+    progress = {
+        "updated": f"{snap['time']} UTC",
+        "ozempic_export": export_progress(snap["export"]),
+        "comments": f"{snap['comments']:,}",
+        "posts": f"{snap['posts']:,}",
+        "oldest_next_day": snap["oldest"],
+    }
+    (data_dir / PROGRESS).parent.mkdir(parents=True, exist_ok=True)
+    (data_dir / PROGRESS).write_text(json.dumps(progress, indent=2) + "\n")
+
+
 def render(data_dir, now):
     checkpoint_path = data_dir / "state" / "checkpoint.json"
     checkpoint = json.loads(checkpoint_path.read_text()) if checkpoint_path.exists() else {}
     export = export_stats(data_dir)
-    export_line = (
-        f"**{export[0]:,} of 100,000** comments mentioning \"ozempic\" ({export[1]} → {export[2]})"
-        if export else "not generated yet"
-    )
+    history = read_history(data_dir)
     oldest = min(checkpoint.values()) if checkpoint else "n/a"
     comments = curated_stats(data_dir, "comments")
     posts = curated_stats(data_dir, "posts")
@@ -190,28 +239,25 @@ code, the schema and how collection works are described in the [main README]({CO
 _Updated automatically after every run. Last update: {now:%Y-%m-%d %H:%M} UTC.
 Oldest stream continues from {oldest}._
 
+**Ozempic comments: {export_progress(export[0] if export else 0)}** `{_bar(export[0] if export else 0)}`
+
 ## How much data
 
 | | rows |
 |---|---:|
 | comments | {n_comments:,} |
 | posts | {n_posts:,} |
-| Ozempic export | {export[0] if export else 0:,} of 100,000 |
+| Ozempic export | {export_progress(export[0] if export else 0)} |
 
-{_runs_section(read_history(data_dir))}
+{_runs_section(history)}
 
 ## Where to get it
-
 
 | repository | role | clone just the data |
 |---|---|---|
 {repo_rows}
 
-## Ozempic export
-
-`{EXPORT}`: {export_line}.
-Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
-Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
+{_export_section(export, history)}
 
 ## Collected so far
 
@@ -229,6 +275,7 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 | `raw/<kind>/subreddit=<name>/date=<YYYY-MM-DD>.jsonl.gz` | the API response, unchanged |
 | `state/checkpoint.json` | next day to collect per stream |
 | `{HISTORY}` | totals after each run that added data, behind the "Latest run" numbers |
+| `{PROGRESS}` | headline numbers, read by the progress badge in the main README |
 
 ## Loading
 
@@ -253,6 +300,7 @@ def main():
     data_dir = Path(args.data)
     now = datetime.now(timezone.utc)
     record_run(data_dir, now)
+    write_progress(data_dir, now)
     (data_dir / "README.md").write_text(render(data_dir, now), encoding="utf-8")
 
 

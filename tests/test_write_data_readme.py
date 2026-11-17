@@ -1,7 +1,13 @@
 import json
 from datetime import datetime, timezone
 
-from scripts.write_data_readme import read_history, record_run, render
+from scripts.write_data_readme import (
+    export_progress,
+    read_history,
+    record_run,
+    render,
+    write_progress,
+)
 
 
 def test_render_counts_rows_and_coverage(tmp_path):
@@ -27,11 +33,12 @@ def test_render_counts_rows_and_coverage(tmp_path):
     assert "**Comments: 2 rows**" in text
     assert "| Ozempic | 2 | 2024-01-01 | 2024-01-02 |" in text
     assert "| Zepbound | 1 | 2024-03-05 | 2024-03-05 |" in text
-    assert "**1 of 100,000**" in text
+    assert "**1 of 100,000 (0.0%)** comments mentioning" in text
+    assert "| still to collect | 99,999 |" in text
     assert "continues from 2024-01-03" in text
     assert "2026-10-28 12:00 UTC" in text
     assert "| comments | 2 |" in text
-    assert "| Ozempic export | 1 of 100,000 |" in text
+    assert "| Ozempic export | 1 of 100,000 (0.0%) |" in text
     assert "https://github.com/UitbreidenAI/drug-exp-api.git ozempic-data" in text
 
 
@@ -85,3 +92,16 @@ def test_first_run_uses_old_readme_as_baseline(tmp_path):
     text = render(tmp_path, now)
     assert "added **+3 comments**" in text
     assert "| 2026-11-16 21:10 |" not in text  # baseline is the start, not a run row
+
+
+def test_export_progress_and_progress_json(tmp_path):
+    (tmp_path / "exports").mkdir()
+    rows = "".join(f"c{i},Ozempic,x,b,1,2024-01-0{1 + i % 9}T00:00:00Z,/c\n" for i in range(5))
+    (tmp_path / "exports" / "ozempic_100k_comments.csv").write_text(
+        "comment_id,subreddit,author,body,score,created_at,permalink\n" + rows
+    )
+    now = datetime(2026, 11, 18, tzinfo=timezone.utc)
+    write_progress(tmp_path, now)
+    progress = json.loads((tmp_path / "state" / "progress.json").read_text())
+    assert progress["ozempic_export"] == "5 of 100,000 (0.0%)"
+    assert export_progress(69735) == "69,735 of 100,000 (69.7%)"
