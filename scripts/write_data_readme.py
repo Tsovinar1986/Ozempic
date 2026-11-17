@@ -11,9 +11,12 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 CODE_REPO = "https://github.com/Tsovinar1986/Ozempic"
-# Collection runs in CODE_REPO (public, so Actions minutes are free); data is stored here.
+# Collection runs in CODE_REPO (public, so Actions minutes are free). The first repository
+# is the source of truth; the workflow copies its data branch to the others after every run.
 DATA_REPOS = [
-    ("UitbreidenAI/drug-exp-api", "data is stored here"),
+    ("UitbreidenAI/drug-exp-api", "main copy (private)"),
+    ("Tsovinar1986/Ozempic", "synced after every run (public)"),
+    ("adele-kha/uitbreiden_drug_experience", "synced after every run (private)"),
 ]
 EXPORT = "exports/ozempic_100k_comments.csv"
 DATE_RE = re.compile(r"date=(\d{4}-\d{2}-\d{2})\.")

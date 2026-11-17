@@ -15,13 +15,15 @@ concurrency:
   group: reddit-collector
   cancel-in-progress: false
 
-# Collection runs here because this repository is public (free Actions minutes), but the
-# data lives only in the private team repository below. Reading and pushing it needs the
-# TEAM_REPO_TOKEN secret: a classic personal access token (repo scope) from an account with
-# write access to DATA_REPO. If it expires, runs fail at "Check out data branch" until it
-# is replaced; nothing is collected or lost meanwhile.
+# Collection runs here because this repository is public (free Actions minutes). The data's
+# source of truth is DATA_REPO's data branch; after every run the same branch is copied to
+# this repository and to the other team repository, so all three stay in sync.
+# Reading DATA_REPO and pushing to adele-kha needs the TEAM_REPO_TOKEN secret: a classic
+# personal access token (ghp_..., repo scope) from an account with write access to both. A
+# fine-grained token (github_pat_...) cannot reach repositories owned by another account.
+# If it expires, runs fail at "Check out data branch" until it is replaced; nothing is lost.
 permissions:
-  contents: read
+  contents: write   # push the data copy to this repository's data branch
 
 env:
   DATA_REPO: UitbreidenAI/drug-exp-api
@@ -53,6 +55,11 @@ jobs:
             echo "::error::TEAM_REPO_TOKEN secret is missing; it is needed to read and save data in $DATA_REPO"
             exit 1
           fi
+          case "$token" in
+            ghp_*) ;;
+            github_pat_*) echo "::warning::TEAM_REPO_TOKEN is a fine-grained token; it cannot reach repositories owned by another account. Use a classic token (ghp_...) with repo scope." ;;
+            *) echo "::warning::TEAM_REPO_TOKEN does not start with ghp_ (${#token} chars); the secret may hold extra text." ;;
+          esac
           auth=$(printf 'x-access-token:%s' "$token" | base64 -w0)
           echo "::add-mask::$auth"
           header="AUTHORIZATION: basic $auth"
@@ -96,3 +103,40 @@ jobs:
               -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
               commit --quiet -m "Collect data (oldest next day: $through)"
           git push origin "HEAD:$DATA_BRANCH"
+
+      # Copy DATA_REPO's data branch to the other two repositories, every run, even when
+      # nothing new was collected, so a copy that missed a run catches up. Pushes are
+      # fast-forward only (no --force): a copy that has diverged is reported, not overwritten.
+      # This repository uses the workflow's own GITHUB_TOKEN; adele-kha uses TEAM_REPO_TOKEN.
+      # The empty extraheader first drops the DATA_REPO auth stored in the clone's config.
+      # Every copy is attempted; the step fails afterwards if any push failed.
+      - name: Sync data to the other repositories
+        if: always()
+        working-directory: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
+        run: |
+          if [ ! -d .git ]; then
+            echo "::error::No data checkout; nothing to sync"
+            exit 1
+          fi
+          # Collected days were committed onto a shallow clone; without history git can't
+          # tell a push to a copy that is behind is a fast-forward, and rejects it.
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --quiet --unshallow origin "$DATA_BRANCH"
+          fi
+          failed=0
+          sync() {  # sync <owner/repo> <token>
+            local auth
+            auth=$(printf 'x-access-token:%s' "$(printf %s "$2" | tr -d '[:space:]')" | base64 -w0)
+            echo "::add-mask::$auth"
+            echo "Syncing $DATA_BRANCH to $1"
+            git -c http.https://github.com/.extraheader= \
+                -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
+                push "https://github.com/$1.git" "HEAD:refs/heads/$DATA_BRANCH" \
+              || { echo "::error::sync to $1 failed"; failed=1; }
+          }
+          sync "$GITHUB_REPOSITORY" "$GH_TOKEN"
+          sync adele-kha/uitbreiden_drug_experience "$TEAM_REPO_TOKEN"
+          exit $failed

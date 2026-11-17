@@ -33,9 +33,12 @@ cut short by its time budget still advances all streams evenly.
 Because every day maps to fixed file paths, a crash or a re-run overwrites the same files:
 no duplicates and no gaps.
 
-The workflow runs in this public repository (free GitHub Actions minutes) but stores everything
+The workflow runs in this public repository (free GitHub Actions minutes) and stores everything
 on the `data` branch of the private team repository
-[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data):
+[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data). After every
+run that branch is copied, unchanged, to the `data` branch of this repository and of
+[adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data),
+so all three hold the same data:
 
 ```text
 data branch/
@@ -72,7 +75,10 @@ Join comments to posts with `comment.post_id == post.fullname`.
 ## Collected data
 
 Everything the workflow collects lives on the **`data` branch of
-[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data)**; this repository holds only code.
+[UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api/tree/data)**, and is copied
+after every run to the `data` branch of [this repository](https://github.com/Tsovinar1986/Ozempic/tree/data)
+and of [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
+The `main` branch here holds only code.
 Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far); the `data` branch's own
 README.md is regenerated after every run with current numbers:
 
@@ -101,11 +107,12 @@ The CSV `body` field can contain line breaks, so count rows with a CSV reader, n
 
 ### Getting the data
 
-Browse it on GitHub in drug-exp-api with the branch selector set to `data` (you need access to that
-private repository), or clone it next to the code:
+Browse it on GitHub with the branch selector set to `data` in any of the three repositories (the
+copy in this repository is public; the other two need access), or clone it next to the code:
 
 ```bash
 git clone --branch data --single-branch https://github.com/UitbreidenAI/drug-exp-api.git data
+# or, without team access: https://github.com/Tsovinar1986/Ozempic.git
 git -C data pull                     # later, to get new days; ./data is git-ignored here
 ```
 
@@ -121,12 +128,12 @@ comments = pd.concat(
 ozempic = pd.read_csv("data/exports/ozempic_100k_comments.csv")
 ```
 
-### Where it used to be
+### History
 
-Until 2026-10-31 the data was stored on this repository's own `data` branch and copied to
-drug-exp-api and [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
-Those copies stopped updating then; drug-exp-api continued from the same checkpoint. The code is
-also kept on the `research-data-reddit` branch of both team repositories.
+Until 2026-10-31 the data was collected on this repository's own `data` branch and copied to both
+team repositories. From then until 2026-11-18 only drug-exp-api was updated; since then the copies
+are synced again after every run (fast-forward only, so a diverged copy is reported, not
+overwritten). The code is also kept on the `research-data-reddit` branch of both team repositories.
 
 ### Size
 
@@ -175,10 +182,12 @@ continues to add data independently. Override paths or the cap with `--input`,
 `--output`, and `--limit`.
 
 GitHub Actions setup ([.github/workflows/collect.yml](.github/workflows/collect.yml)): the workflow
-reads and pushes drug-exp-api's `data` branch with the `TEAM_REPO_TOKEN` secret: a classic personal
-access token with the `repo` scope from an account with write access to drug-exp-api. When it
-expires, runs fail at **Check out data branch** until the secret is replaced; nothing is lost
-meanwhile. Start a run by hand from the **Actions** tab → **Collect Reddit data** → **Run workflow**;
+reads and pushes drug-exp-api's `data` branch, then syncs it to the other two repositories, with
+the `TEAM_REPO_TOKEN` secret: a classic personal access token (`ghp_…`) with the `repo` scope from an
+account with write access to drug-exp-api and adele-kha/uitbreiden_drug_experience. A fine-grained
+token (`github_pat_…`) does not work: it cannot reach repositories owned by another account. The
+copy in this repository is pushed with the workflow's own token. When the secret expires, runs fail
+at **Check out data branch** until it is replaced; nothing is lost meanwhile. Start a run by hand from the **Actions** tab → **Collect Reddit data** → **Run workflow**;
 set **max_minutes** to e.g. 5 for a quick test. A long backfill is spread across runs: the collector
 stops starting new days after 5 hours (Collect step capped at 345 minutes, job at the 360-minute GitHub maximum), and the next run continues from the checkpoint.
 
