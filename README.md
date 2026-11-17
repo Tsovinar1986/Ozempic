@@ -80,7 +80,8 @@ after every run to the `data` branch of [this repository](https://github.com/Tso
 and of [adele-kha/uitbreiden_drug_experience](https://github.com/adele-kha/uitbreiden_drug_experience/tree/data).
 The `main` branch here holds only code.
 Snapshot on 2026-10-28 (comments are collected through 2024-04-08 so far); the `data` branch's own
-README.md is regenerated after every run with current numbers:
+README.md is regenerated after every run with current numbers and a **Latest run** section showing how
+many comments, posts and export rows that run added (history in `state/run_history.jsonl`):
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|

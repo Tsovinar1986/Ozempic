@@ -19,6 +19,8 @@ DATA_REPOS = [
     ("adele-kha/uitbreiden_drug_experience", "synced after every run (private)"),
 ]
 EXPORT = "exports/ozempic_100k_comments.csv"
+HISTORY = "state/run_history.jsonl"  # one line of totals per run that changed the data
+RECENT_RUNS = 10
 DATE_RE = re.compile(r"date=(\d{4}-\d{2}-\d{2})\.")
 
 
@@ -64,6 +66,102 @@ def _table(kind, stats):
     return "\n".join(lines)
 
 
+def snapshot(data_dir, now):
+    """Current totals, as recorded in HISTORY."""
+    checkpoint_path = data_dir / "state" / "checkpoint.json"
+    checkpoint = json.loads(checkpoint_path.read_text()) if checkpoint_path.exists() else {}
+    export = export_stats(data_dir)
+    return {
+        "time": f"{now:%Y-%m-%d %H:%M}",
+        "comments": sum(rows for rows, _, _ in curated_stats(data_dir, "comments").values()),
+        "posts": sum(rows for rows, _, _ in curated_stats(data_dir, "posts").values()),
+        "export": export[0] if export else 0,
+        "oldest": min(checkpoint.values()) if checkpoint else None,
+    }
+
+
+def _from_old_readme(data_dir):
+    """Totals from a README written before HISTORY existed, so the first run has a baseline."""
+    path = data_dir / "README.md"
+    if not path.exists():
+        return None
+    text = path.read_text(encoding="utf-8")
+    found = {}
+    for key, pattern in [
+        ("comments", r"^\| comments \| ([\d,]+) \|"),
+        ("posts", r"^\| posts \| ([\d,]+) \|"),
+        ("export", r"^\| Ozempic export \| ([\d,]+) of"),
+    ]:
+        m = re.search(pattern, text, re.M)
+        if not m:
+            return None
+        found[key] = int(m.group(1).replace(",", ""))
+    m = re.search(r"Last update: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC", text)
+    found["time"] = m.group(1) if m else "before tracking"
+    m = re.search(r"Oldest stream continues from (\d{4}-\d{2}-\d{2})", text)
+    found["oldest"] = m.group(1) if m else None
+    return found
+
+
+def read_history(data_dir):
+    path = data_dir / HISTORY
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def record_run(data_dir, now):
+    """Append the current totals to HISTORY if they changed since the last entry."""
+    history = read_history(data_dir)
+    if not history and (baseline := _from_old_readme(data_dir)):
+        history.append(baseline)
+    current = snapshot(data_dir, now)
+    keys = ("comments", "posts", "export", "oldest")
+    if not history or any(current[k] != history[-1].get(k) for k in keys):
+        history.append(current)
+    path = data_dir / HISTORY
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(entry) + "\n" for entry in history))
+
+
+def _delta(n):
+    return f"+{n:,}" if n >= 0 else f"{n:,}"
+
+
+def _runs_section(history):
+    if len(history) < 2:
+        return (
+            "## Latest run\n\n"
+            "No earlier run recorded yet; how much each run adds is shown from the next run on."
+        )
+    pairs = list(zip(history, history[1:]))
+    prev, last = pairs[-1]
+    moved = (
+        f"; the oldest stream moved from {prev['oldest']} to {last['oldest']}"
+        if prev.get("oldest") and last.get("oldest") and prev["oldest"] != last["oldest"]
+        else ""
+    )
+    lines = [
+        "## Latest run",
+        "",
+        f"The run at {last['time']} UTC added **{_delta(last['comments'] - prev['comments'])} comments**, "
+        f"**{_delta(last['posts'] - prev['posts'])} posts** and "
+        f"**{_delta(last['export'] - prev['export'])}** rows in the Ozempic export{moved}.",
+        "",
+        f"Recent runs (newest first; full list in `{HISTORY}`):",
+        "",
+        "| run (UTC) | comments added | posts added | export rows added | comments total | posts total | oldest next day |",
+        "|---|---:|---:|---:|---:|---:|---|",
+    ]
+    for prev, cur in reversed(pairs[-RECENT_RUNS:]):
+        lines.append(
+            f"| {cur['time']} | {_delta(cur['comments'] - prev['comments'])} | "
+            f"{_delta(cur['posts'] - prev['posts'])} | {_delta(cur['export'] - prev['export'])} | "
+            f"{cur['comments']:,} | {cur['posts']:,} | {cur.get('oldest') or 'n/a'} |"
+        )
+    return "\n".join(lines)
+
+
 def render(data_dir, now):
     checkpoint_path = data_dir / "state" / "checkpoint.json"
     checkpoint = json.loads(checkpoint_path.read_text()) if checkpoint_path.exists() else {}
@@ -100,7 +198,10 @@ Oldest stream continues from {oldest}._
 | posts | {n_posts:,} |
 | Ozempic export | {export[0] if export else 0:,} of 100,000 |
 
-Where to get it:
+{_runs_section(read_history(data_dir))}
+
+## Where to get it
+
 
 | repository | role | clone just the data |
 |---|---|---|
@@ -127,6 +228,7 @@ Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 | `{EXPORT}` | up to 100,000 most recent comments mentioning "ozempic" |
 | `raw/<kind>/subreddit=<name>/date=<YYYY-MM-DD>.jsonl.gz` | the API response, unchanged |
 | `state/checkpoint.json` | next day to collect per stream |
+| `{HISTORY}` | totals after each run that added data, behind the "Latest run" numbers |
 
 ## Loading
 
@@ -149,7 +251,9 @@ def main():
     parser.add_argument("--data", default="data", help="data branch checkout (default: ./data)")
     args = parser.parse_args()
     data_dir = Path(args.data)
-    (data_dir / "README.md").write_text(render(data_dir, datetime.now(timezone.utc)), encoding="utf-8")
+    now = datetime.now(timezone.utc)
+    record_run(data_dir, now)
+    (data_dir / "README.md").write_text(render(data_dir, now), encoding="utf-8")
 
 
 if __name__ == "__main__":
