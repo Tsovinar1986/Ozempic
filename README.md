@@ -4,16 +4,16 @@ Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Ar
 API) by the workflow in [UitbreidenAI/drug-exp-api](https://github.com/UitbreidenAI/drug-exp-api). This branch holds only data; the
 code, the schema and how collection works are described in the [main README](https://github.com/UitbreidenAI/drug-exp-api#readme).
 
-_Updated automatically after every run. Last update: 2026-11-18 16:37 UTC.
+_Updated automatically after every run. Last update: 2026-11-19 16:44 UTC.
 Oldest stream continues from 2025-05-23._
 
 ## How much data
 
 | | rows |
 |---|---:|
-| comments | 3,449,844 |
+| comments | 3,456,412 |
 | posts | 227,712 |
-| Ozempic export | 71,039 of 100,000 |
+| Ozempic export | 71,137 of 100,000 |
 
 Where to get it:
 
@@ -23,22 +23,22 @@ Where to get it:
 
 ## Ozempic export
 
-`exports/ozempic_100k_comments.csv`: **71,039 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2025-05-22).
+`exports/ozempic_100k_comments.csv`: **71,137 of 100,000** comments mentioning "ozempic" (2024-01-01 → 2025-05-23).
 Columns: `comment_id, subreddit, author, body, score, created_at, permalink`.
 Bodies can contain line breaks, so count rows with a CSV reader, not `wc -l`.
 
 ## Collected so far
 
-**Comments: 3,449,844 rows**
+**Comments: 3,456,412 rows**
 
 | subreddit | rows | from | through |
 |---|---:|---|---|
-| Zepbound | 1,231,580 | 2024-01-01 | 2025-05-22 |
+| Zepbound | 1,235,191 | 2024-01-01 | 2025-05-23 |
 | tirzepatidecompound | 734,887 | 2024-01-01 | 2025-05-22 |
-| Semaglutide | 522,721 | 2024-01-01 | 2025-05-22 |
-| Mounjaro | 520,590 | 2024-01-01 | 2025-05-22 |
-| Ozempic | 404,460 | 2024-01-01 | 2025-05-22 |
-| compoundedsemaglutide | 35,606 | 2024-01-01 | 2025-05-22 |
+| Semaglutide | 523,628 | 2024-01-01 | 2025-05-23 |
+| Mounjaro | 521,740 | 2024-01-01 | 2025-05-23 |
+| Ozempic | 405,260 | 2024-01-01 | 2025-05-23 |
+| compoundedsemaglutide | 35,706 | 2024-01-01 | 2025-05-23 |
 
 **Posts: 227,712 rows**
 
