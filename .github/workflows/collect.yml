@@ -2,7 +2,9 @@ name: Collect Reddit data
 
 on:
   schedule:
-    - cron: "17 6 * * *"   # daily, 06:17 UTC
+    # 08:17, two hours after drug-exp-api's own collector (06:17, ~50 min), so the two
+    # don't hit the Arctic Shift rate limit together or collect the same days twice.
+    - cron: "17 8 * * *"   # daily, 08:17 UTC
   workflow_dispatch:
     inputs:
       max_minutes:
@@ -88,58 +90,24 @@ jobs:
         if: always()
         run: python scripts/write_data_readme.py --data data
 
-      - name: Commit data
+      # Save this run's data and make all three copies identical. drug-exp-api runs its own
+      # collector on the same branch, and a copy can end up ahead of drug-exp-api, so a plain
+      # push gets rejected and the run's work is lost. The script commits this run's data,
+      # merges in the data branch of drug-exp-api and both copies (union of day files; this
+      # run's file wins where both wrote the same day; checkpoint takes the later date per
+      # stream), rebuilds the export and data README, then pushes to all three. Pushes are
+      # fast-forwards (never forced). It runs even when nothing new was collected, so a copy
+      # that fell behind or diverged catches up. This repository uses the workflow's
+      # GITHUB_TOKEN; adele-kha uses TEAM_REPO_TOKEN; drug-exp-api uses the clone's stored auth.
+      - name: Save and sync data
         if: always()
-        working-directory: data
-        run: |
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No new data"
-            exit 0
-          fi
-          # Report the stream furthest behind, so the message doesn't overstate progress.
-          through=$(jq -r '[.[]] | min' state/checkpoint.json 2>/dev/null || echo "partial day")
-          git -c user.name="github-actions[bot]" \
-              -c user.email="41898237+github-actions[bot]@users.noreply.github.com" \
-              commit --quiet -m "Collect data (oldest next day: $through)"
-          git push origin "HEAD:$DATA_BRANCH"
-
-      # Copy DATA_REPO's data branch to the other two repositories, every run, even when
-      # nothing new was collected, so a copy that missed a run catches up. Pushes are
-      # fast-forward only (no --force): a copy that has diverged is reported, not overwritten.
-      # This repository uses the workflow's own GITHUB_TOKEN; adele-kha uses TEAM_REPO_TOKEN.
-      # The empty extraheader first drops the DATA_REPO auth stored in the clone's config.
-      # Every copy is attempted; the step fails afterwards if any push failed.
-      - name: Sync data to the other repositories
-        if: always()
-        working-directory: data
         env:
           GH_TOKEN: ${{ github.token }}
           TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
-        run: |
-          if [ ! -d .git ]; then
-            echo "::error::No data checkout; nothing to sync"
-            exit 1
-          fi
-          # Collected days were committed onto a shallow clone; without history git can't
-          # tell a push to a copy that is behind is a fast-forward, and rejects it.
-          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-            git fetch --quiet --unshallow origin "$DATA_BRANCH"
-          fi
-          failed=0
-          sync() {  # sync <owner/repo> <token>
-            local auth
-            auth=$(printf 'x-access-token:%s' "$(printf %s "$2" | tr -d '[:space:]')" | base64 -w0)
-            echo "::add-mask::$auth"
-            echo "Syncing $DATA_BRANCH to $1"
-            git -c http.https://github.com/.extraheader= \
-                -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
-                push "https://github.com/$1.git" "HEAD:refs/heads/$DATA_BRANCH" \
-              || { echo "::error::sync to $1 failed"; failed=1; }
-          }
-          sync "$GITHUB_REPOSITORY" "$GH_TOKEN"
-          sync adele-kha/uitbreiden_drug_experience "$TEAM_REPO_TOKEN"
-          exit $failed
+        run: >-
+          scripts/save_and_sync.sh data "$DATA_REPO"
+          "$GITHUB_REPOSITORY=GH_TOKEN"
+          adele-kha/uitbreiden_drug_experience=TEAM_REPO_TOKEN
 
       # Refresh the numbers block in this repository's README.md on main, so the code page
       # always shows how much has been collected. Uses GITHUB_TOKEN (contents: write); pushes
