@@ -2,8 +2,9 @@ name: Collect Reddit data
 
 on:
   schedule:
-    # 08:17, two hours after drug-exp-api's own collector (06:17, ~50 min), so the two
-    # don't hit the Arctic Shift rate limit together or collect the same days twice.
+    # This is the only collector. drug-exp-api's own "Collect Reddit data" workflow is
+    # disabled (Actions tab there) so the two don't share the Arctic Shift rate limit or
+    # collect the same days; drug-exp-api and adele-kha only receive the synced data.
     - cron: "17 8 * * *"   # daily, 08:17 UTC
   workflow_dispatch:
     inputs:
@@ -90,9 +91,9 @@ jobs:
         if: always()
         run: python scripts/write_data_readme.py --data data
 
-      # Save this run's data and make all three copies identical. drug-exp-api runs its own
-      # collector on the same branch, and a copy can end up ahead of drug-exp-api, so a plain
-      # push gets rejected and the run's work is lost. The script commits this run's data,
+      # Save this run's data and make all three copies identical. If anything else changed a
+      # copy (e.g. drug-exp-api's collector, if re-enabled, or a manual commit), a plain push
+      # would be rejected and the run's work lost. The script commits this run's data,
       # merges in the data branch of drug-exp-api and both copies (union of day files; this
       # run's file wins where both wrote the same day; checkpoint takes the later date per
       # stream), rebuilds the export and data README, then pushes to all three. Pushes are

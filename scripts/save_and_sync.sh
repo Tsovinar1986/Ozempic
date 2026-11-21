@@ -5,8 +5,8 @@
 #   e.g. scripts/save_and_sync.sh data UitbreidenAI/drug-exp-api \
 #          Tsovinar1986/Ozempic=GH_TOKEN adele-kha/uitbreiden_drug_experience=TEAM_REPO_TOKEN
 #
-# More than one collector writes the data branch (drug-exp-api runs its own), and a copy can
-# also end up ahead of the main repository. A plain push then fails ("fetch first") and the
+# Something else may also write the data branch (drug-exp-api's own collector, now disabled,
+# or a manual commit), and a copy can end up ahead of the main repository. A plain push then fails ("fetch first") and the
 # run's work is lost. Instead, this script:
 #   1. commits whatever this run collected (if anything);
 #   2. fetches the data branch of the main repository and of every copy and merges each one
