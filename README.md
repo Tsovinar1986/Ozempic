@@ -4,7 +4,7 @@ Reddit posts and comments from six GLP-1 subreddits, collected daily (via the Ar
 API) by the workflow in [Tsovinar1986/Ozempic](https://github.com/Tsovinar1986/Ozempic). This branch holds only data; the
 code, the schema and how collection works are described in the [main README](https://github.com/Tsovinar1986/Ozempic#readme).
 
-_Updated automatically after every run. Last update: 2026-11-23 22:14 UTC.
+_Updated automatically after every run. Last update: 2026-11-25 00:36 UTC.
 Oldest stream continues from 2025-05-31._
 
 **Ozempic comments: 72,161 of 100,000 (72.2%)** `██████████████░░░░░░`
