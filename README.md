@@ -88,7 +88,7 @@ The `main` branch here holds only code.
 <!-- Written by scripts/write_data_readme.py after every collection run; edits here are overwritten. -->
 **Ozempic export: 72,161 of 100,000 (72.2%)** `██████████████░░░░░░` 27,839 still to collect.
 
-_Numbers as of 2026-11-23 22:14 UTC; next day to collect: 2025-05-31. The latest run (2026-11-23 22:14 UTC) added +1,467 comments, +436 posts and +88 Ozempic comments._
+_Numbers as of 2026-11-25 00:37 UTC; next day to collect: 2025-05-31. The latest run (2026-11-23 22:14 UTC) added +1,467 comments, +436 posts and +88 Ozempic comments._
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|
