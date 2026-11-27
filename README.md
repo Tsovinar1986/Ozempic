@@ -86,15 +86,15 @@ The `main` branch here holds only code.
 
 <!-- data-stats:start -->
 <!-- Written by scripts/write_data_readme.py after every collection run; edits here are overwritten. -->
-**Ozempic export: 72,178 of 100,000 (72.2%)** `██████████████░░░░░░` 27,822 still to collect.
+**Ozempic export: 72,297 of 100,000 (72.3%)** `██████████████░░░░░░` 27,703 still to collect.
 
-_Numbers as of 2026-11-25 23:42 UTC; next day to collect: 2025-05-31. The latest run (2026-11-25 23:41 UTC) added +1,223 comments, +0 posts and +17 Ozempic comments._
+_Numbers as of 2026-11-27 00:09 UTC; next day to collect: 2025-06-01. The latest run (2026-11-27 00:08 UTC) added +7,907 comments, +430 posts and +119 Ozempic comments._
 
 | | rows | by subreddit | days covered |
 |---|---:|---|---|
-| comments | 3,522,938 | Zepbound 1.26M · tirzepatidecompound 751k · Mounjaro 532k · Semaglutide 531k · Ozempic 411k · compoundedsemaglutide 37k | 2024-01-01 → 2025-05-30 … 2025-05-31 |
-| posts | 231,809 | Zepbound 84k · Mounjaro 40k · Semaglutide 39k · tirzepatidecompound 38k · Ozempic 27k · compoundedsemaglutide 3.4k | 2024-01-01 → 2025-05-31 |
-| Ozempic export | 72,178 of 100,000 (72.2%) | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2025-05-31 |
+| comments | 3,530,845 | Zepbound 1.26M · tirzepatidecompound 753k · Mounjaro 534k · Semaglutide 532k · Ozempic 412k · compoundedsemaglutide 37k | 2024-01-01 → 2025-05-31 … 2025-06-01 |
+| posts | 232,239 | Zepbound 85k · Mounjaro 41k · Semaglutide 39k · tirzepatidecompound 38k · Ozempic 27k · compoundedsemaglutide 3.4k | 2024-01-01 → 2025-06-01 |
+| Ozempic export | 72,297 of 100,000 (72.3%) | comments from any subreddit mentioning "ozempic" | 2024-01-01 → 2025-06-01 |
 <!-- data-stats:end -->
 
 The block above is rewritten on `main` by the workflow after every run. The `data` branch's own README.md is regenerated after every run with current numbers, the same
